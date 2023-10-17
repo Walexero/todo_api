@@ -1,0 +1,4 @@
+Django>=4.2.0,<4.2.6
+djangorestframework==3.14.0
+psycopg2>=2.9.4,<2.9.8
+drf-spectacular>=0.26.0,<0.26.5
