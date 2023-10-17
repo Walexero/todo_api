@@ -2,7 +2,7 @@
 Views for Todo
 """
 
-# from drf_spectacular.utils import ()
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
@@ -14,6 +14,22 @@ from core.models import Todo, Task
 # Create your views here.
 
 
+@extend_schema_view(
+    create=extend_schema(description="Creates a new Todo"),
+    destroy=extend_schema(
+        description="Deletes the specified todo, the todo ID is required"
+    ),
+    partial_update=extend_schema(
+        description="Updates specified properties on the Todo, not all fields are required to perform updates"
+    ),
+    update=extend_schema(
+        description="Updates the Todo, all fields are required to perform the update"
+    ),
+    list=extend_schema(description="Lists all Todos"),
+    retrieve=extend_schema(
+        description="Retrieves a specified todo based on the todo ID"
+    ),
+)
 class TodoViewSet(viewsets.ModelViewSet):
     """
     Views to manage Todo APIs
@@ -36,6 +52,23 @@ class TodoViewSet(viewsets.ModelViewSet):
             return self.queryset.filter(user=self.request.user).order_by("-id")
 
 
+@extend_schema_view(
+    list=extend_schema(
+        description="Returns a List of all tasks related to a specific Todo"
+    ),
+    retrieve=extend_schema(
+        description="Returns the details of a specific task. Accepts the task ID as a query value"
+    ),
+    partial_update=extend_schema(
+        description="All fields are not required to be updated. You have the option to update specific properties you choose to update"
+    ),
+    update=extend_schema(
+        description="All fields are required to perform update on the task"
+    ),
+    destroy=extend_schema(
+        description="Deletes the specified task to delete. The task ID is required"
+    ),
+)
 class TaskViewSet(
     viewsets.GenericViewSet,
     mixins.UpdateModelMixin,

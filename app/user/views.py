@@ -4,7 +4,12 @@ Views for the User
 from rest_framework import generics, authentication, permissions
 from rest_framework.settings import api_settings
 from rest_framework.authtoken.views import ObtainAuthToken
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter,
+    OpenApiExample,
+)
 from drf_spectacular.types import OpenApiTypes
 from user.serializers import UserSerializer, AuthTokenSerializer
 
@@ -29,6 +34,17 @@ class CreateTokenView(ObtainAuthToken):
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
 
 
+@extend_schema_view(
+    get=extend_schema(
+        description="Returns user's details if the user is authenticated."
+    ),
+    patch=extend_schema(
+        description="Edits user's details and returns the modified details. Only a single property from the users details can be modified",
+    ),
+    put=extend_schema(
+        description="Edits user's details and returns the modified details"
+    ),
+)
 class ManageUserView(generics.RetrieveUpdateAPIView):
     """
     Manage the authenticated user
