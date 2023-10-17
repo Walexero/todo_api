@@ -31,7 +31,8 @@ urlpatterns = [
         name="api-docs",
     ),
     re_path("api/user/", include("user.urls")),
-    re_path("api/todo", include("todo.urls")),
+    re_path("api/todo/", include("todo.urls")),
+    re_path("api/healthcheck", core_views.health_check, name="healthcheck"),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -285,3 +285,49 @@ class PrivateTodoApiTest(TestCase):
         payload = {"user": other_user.id}
         self.client.patch(url, payload)
         self.assertEqual(user_todo.user, self.user)
+
+    def test_updating_tasks_from_todo(self):
+        """
+        Test that the tasks added to the todo are cleared when the todo tasks are updated
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+        user_todo = create_todo(self.user)
+        task = create_task(user_todo, "new task")
+
+        url = detail_url(user_todo.id)
+        payload = {"tasks": [{"task": "dsfasdfdf"}, {"task": "diff task"}]}
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        user_todo.refresh_from_db()
+        serializer = TodoSerializer(user_todo)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_updating_tasks_from_todo_does_not_affect_other_unrelated_tasks(self):
+        """
+        Test that updating tasks from the todo does not affect other tasks in other todos
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+        user_todo = create_todo(self.user)
+        diff_todo1 = create_todo(self.user)
+        diff_todo2 = create_todo(self.user)
+        task = create_task(user_todo, "new task")
+        create_task(diff_todo1, "diff task")
+        create_task(diff_todo2, "sdfasdfadsf")
+
+        url = detail_url(user_todo.id)
+        payload = {"tasks": [{"task": "dsfasdfdf"}, {"task": "diff task"}]}
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        user_todo.refresh_from_db()
+        serializer = TodoSerializer(user_todo)
+        self.assertEqual(res.data, serializer.data)
+
+        self.assertEqual(diff_todo1.tasks.count(), 1)
+        self.assertEqual(diff_todo2.tasks.count(), 1)

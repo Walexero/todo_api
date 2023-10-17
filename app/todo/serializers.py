@@ -15,7 +15,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ["id", "task"]  # , "todo_title"
+        fields = ["id", "task", "completed"]  # , "todo_title"
 
 
 class TodoSerializer(serializers.ModelSerializer):
@@ -26,6 +26,40 @@ class TodoSerializer(serializers.ModelSerializer):
     tasks = TaskSerializer(
         many=True, required=False
     )  # serializers.StringRelatedField(many=True)
+
+    def _get_or_create_tasks(self, tasks, todo):
+        """
+        Handle getting or creating a tasks as needed
+        """
+        for task in tasks:
+            task_obj, created = Task.objects.get_or_create(todo=todo, **task)
+            todo.tasks.add(task_obj)
+
+    def create(self, validated_data):
+        """
+        Create a Todo
+        """
+        tasks = validated_data.pop("tasks", [])
+        todo = Todo.objects.create(**validated_data)
+        self._get_or_create_tasks(tasks, todo)
+        return todo
+
+    def update(self, instance, validated_data):
+        """
+        Update a Todo
+        """
+        tasks = validated_data.pop("tasks", None)
+        if tasks is not None:
+            for task in instance.tasks.all():
+                task.delete()
+
+            self._get_or_create_tasks(tasks, instance)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
     class Meta:
         model = Todo
