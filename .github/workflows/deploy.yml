@@ -39,7 +39,7 @@ jobs:
             key: ${{ secrets.EC2_SSH_KEY }}
             known_hosts: unnecessary
       - name: rsync over SSH
-        run: rsync -r "deploy.tar" ${{ secrets.USERNAME}}@${{ secrets.HOST_DNS }}
+        run: rsync -r "./deploy.tar" ${{ secrets.USERNAME}}@${{ secrets.HOST_DNS }}:deploy/
 
   build:
     name: Build App
