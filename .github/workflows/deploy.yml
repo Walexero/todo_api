@@ -49,6 +49,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/todo_api
+            chmod +x ./setups/setup_env.sh
+            ./setups/setup_env.sh
             docker-compose -f ./docker-compose-build.yml build
             docker-compose -f ./docker-compose-build.yml up
 
