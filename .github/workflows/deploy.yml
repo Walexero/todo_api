@@ -26,15 +26,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: tests
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
+      - name: Checkout and Copy Repo
+        uses: actions/checkout@v4
+      - run: |
+          mkdir ../build
+          cp -TR . ../build
+          tar -cvf deploy.tar ../build/
+
+      - name: Deploy App
+        uses: appleboy/scp-action@v0.1.4
         with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          known_hosts: unnecessary
-      - name: rsync over SSH
-        run: rsync -r ./ ${{ secrets.USERNAME}}@${{ secrets.HOST_DNS }}
+          source: "deploy.tar"
+          target: "~/"
 
   build:
     name: Build App
@@ -48,6 +54,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            tar -xvf ~/deploy.tar
             cd ~/todo_api
             chmod +x ./setups/setup_env.sh
             ./setups/setup_env.sh
