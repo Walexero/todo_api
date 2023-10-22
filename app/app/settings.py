@@ -38,6 +38,7 @@ else:
             os.environ.get("ALLOWED_HOSTS", "").split(","),
         )
     )
+print("the allowed hosts",ALLOWED_HOSTS)
 
 
 # Application definition
