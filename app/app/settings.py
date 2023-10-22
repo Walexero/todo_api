@@ -28,9 +28,8 @@ DEBUG = bool(int(os.environ.get("DEBUG",0)))
 ALLOWED_HOSTS = []
 
 DEV_MODE = os.environ.get("DEV")
-print("the dev mode",DEV_MODE)
+
 if DEV_MODE:
-    print("Added to dev")
     ALLOWED_HOSTS.append("*")
 else:
     ALLOWED_HOSTS.extend(
@@ -39,7 +38,6 @@ else:
             os.environ.get("ALLOWED_HOSTS", "").split(","),
         )
     )
-print(ALLOWED_HOSTS)
 
 
 # Application definition
