@@ -38,8 +38,6 @@ else:
             os.environ.get("ALLOWED_HOSTS", "").split(","),
         )
     )
-print("the allowed hosts",ALLOWED_HOSTS)
-
 
 # Application definition
 
@@ -99,6 +97,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASS"),
+        "PORT": int(os.environ.get("DB_PORT"))
     }
 }
 
