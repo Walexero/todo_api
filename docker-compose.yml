@@ -19,6 +19,7 @@ services:
       - DB_USER=devuser
       - DB_PASS=development
       - DEBUG=1
+      - DEV=true
     depends_on:
       - db
 
