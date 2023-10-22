@@ -33,14 +33,13 @@ jobs:
           cp -TR . ../build
           tar -cvf deploy.tar ../build/
 
-      - name: Deploy App
-        uses: appleboy/scp-action@v0.1.4
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
         with:
-          host: ${{ secrets.HOST_DNS }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "deploy.tar"
-          target: "~/"
+            key: ${{ secrets.EC2_SSH_KEY }}
+            known_hosts: unnecessary
+      - name: rsync over SSH
+        run: rsync -r "deploy.tar" ${{ secrets.USERNAME}}@${{ secrets.HOST_DNS }}
 
   build:
     name: Build App
