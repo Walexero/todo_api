@@ -32,10 +32,7 @@ jobs:
           dest: '${{ secrets.USERNAME }}@${{ secrets.HOST_DNS }}:/home/${{ secrets.USERNAME }}'
         run: |
           mkdir ../build
-          rsync -av --progress \
-          --exclude='.git' \ --exclude='.github' \
-          --exclude='.vscode' \
-           ./ ../build
+          rsync -av --progress --exclude='.git' --exclude='.github' --exclude='.vscode' ./ ../build
           tar -cvf deploy.tar ../build/
           echo "${{ secrets.EC2_SSH_KE}}" > deploy_key
           chmod 600 ./deploy_key
