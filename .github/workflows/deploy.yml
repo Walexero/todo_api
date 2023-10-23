@@ -55,20 +55,23 @@ jobs:
           DB_PASS: ${{ secrets.DB_PASS }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ALLOWED_HOSTS: ${{ secrets.HOST_DNS }}
+          DB_PORT: ${{ secrets.DB_PORT }}
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_NAME,DB_USER,DB_PASS,SECRET_KEY,ALLOWED_HOSTS
+          envs: DB_NAME,DB_USER,DB_PASS,SECRET_KEY,ALLOWED_HOSTS,DB_PORT
           script_stop: true
           script: |
             echo "Db name $DB_NAME"
             tar -xvf ~/deploy.tar
+            rm ~/deploy.tar
             cd ~/build
             echo DB_NAME=$DB_NAME >> .env
             echo DB_USER=$DB_USER >> .env
             echo DB_PASS=$DB_PASS >> .env
+            echo DB_PORT=$DB_PORT >> .env
             echo SECRET_KEY=$SECRET_KEY >> .env
-            echo ALLOWED_HOSTS=$HOST_DNS >> .env
+            echo ALLOWED_HOSTS=$ALLOWD_HOSTS >> .env
             docker-compose -f ./docker-compose-build.yml build
             docker-compose -f ./docker-compose-build.yml up
