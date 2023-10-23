@@ -42,8 +42,6 @@ jobs:
             --exclude '*'\
             ./ ${{env.dest}}
 
-      
-
   build:
     name: Build App
     runs-on: ubuntu-latest
@@ -57,7 +55,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             tar -xvf ~/deploy.tar
-            cd ~/todo_api
+            cd ~/build
             chmod +x ./setups/setup_env.sh
             ./setups/setup_env.sh
             docker-compose -f ./docker-compose-build.yml build
