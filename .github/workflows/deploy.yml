@@ -60,10 +60,15 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DB_NAME,DB_USER,DB_PASS,SECRET_KEY,ALLOWED_HOSTS
+          script_stop: true
           script: |
+            echo "Db name $DB_NAME"
             tar -xvf ~/deploy.tar
             cd ~/build
-            chmod +x ./setups/setup_env.sh
-            ./setups/setup_env.sh
+            echo DB_NAME=$DB_NAME >> .env
+            echo DB_USER=$DB_USER >> .env
+            echo DB_PASS=$DB_PASS >> .env
+            echo SECRET_KEY=$SECRET_KEY >> .env
+            echo ALLOWED_HOSTS=$HOST_DNS >> .env
             docker-compose -f ./docker-compose-build.yml build
             docker-compose -f ./docker-compose-build.yml up
