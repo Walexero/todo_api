@@ -30,7 +30,9 @@ RUN \
 COPY ./app /app
 
 RUN chown -R django-user:django-user /vol && \
+    chown -R django-user:django-user /app && \
     chmod -R 755 /vol && \
+    chmod -R 755 /app && \
     chmod -R +x /scripts && \
     chown django-user:django-user /scripts/run.sh && \
     chmod +x /scripts/run.sh
