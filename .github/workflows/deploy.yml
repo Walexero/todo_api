@@ -63,6 +63,6 @@ jobs:
             tar -xvf ~/deploy.tar
             cd ~/build
             chmod +x ./setups/setup_env.sh
-            ./setups/setup_env.sh $DB_NAME $DB_USER $DB_PASS $SECRET_KEY $ALLOWED_HOSTS
+            ./setups/setup_env.sh
             docker-compose -f ./docker-compose-build.yml build
             docker-compose -f ./docker-compose-build.yml up
