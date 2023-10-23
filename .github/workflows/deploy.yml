@@ -34,7 +34,7 @@ jobs:
           mkdir ../build
           rsync -av --progress --exclude='.git' --exclude='.github' --exclude='.vscode' ./ ../build
           tar -cvf deploy.tar ../build/
-          echo "${{ secrets.EC2_SSH_KE}}" > deploy_key
+          echo "${{ secrets.EC2_SSH_KEY}}" > deploy_key
           chmod 600 ./deploy_key
           rsync -chrlvzi --delete \
             -e 'ssh -i ./deploy_key -p 22 -o StrictHostKeyChecking=no' \
