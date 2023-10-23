@@ -49,6 +49,12 @@ jobs:
     steps:
       - name: Execute Build Commands For Deployed App
         uses: appleboy/ssh-action@master
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER}}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS: ${{ secrets.HOST_DNS }}
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
@@ -57,6 +63,6 @@ jobs:
             tar -xvf ~/deploy.tar
             cd ~/build
             chmod +x ./setups/setup_env.sh
-            ./setups/setup_env.sh
+            ./setups/setup_env.sh $DB_NAME $DB_USER $DB_PASS $SECRET_KEY $ALLOWED_HOSTS
             docker-compose -f ./docker-compose-build.yml build
             docker-compose -f ./docker-compose-build.yml up
