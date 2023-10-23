@@ -40,7 +40,7 @@ jobs:
           KEY: ${{ secrets.EC2_SSH_KEY }}
           USER: ${{ secrets.USERNAME }}
           SOURCE: "./deploy.tar"
-          TARGET: ./
+          TARGET: /home/ec2-user/
 
   build:
     name: Build App
