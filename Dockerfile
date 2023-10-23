@@ -31,7 +31,9 @@ COPY ./app /app
 
 RUN chown -R django-user:django-user /vol && \
     chmod -R 755 /vol && \
-    chmod -R +x /scripts
+    chmod -R +x /scripts && \
+    chown django-user:django-user /scripts/run.sh && \
+    chmod +x /scripts/run.sh
 
 WORKDIR /app
 EXPOSE 9000
