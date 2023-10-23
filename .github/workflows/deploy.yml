@@ -28,19 +28,21 @@ jobs:
     steps:
       - name: Checkout and Copy Repo
         uses: actions/checkout@v4
-      - run: |
+        env:
+          dest: '${{ secrets.USERNAME }}@${{ secrets.HOST_DNS }}:/home/${{ secrets.USERNAME }}'
+        run: |
           mkdir ../build
-          cp -TR . ../build
+          cp -r ./!(.git | .github) ../build
           tar -cvf deploy.tar ../build/
+          echo "${{ secrets.EC2_SSH_KE}}" > deploy_key
+          chmod 600 ./deploy_key
+          rsync -chrlvzi --delete \
+            -e 'ssh -i ./deploy_key -p 22 -o StrictHostKeyChecking=no' \
+            --include "deploy.tar" \
+            --exclude '*'\
+            ./ ${{env.dest}}
 
-      - name: Install SSH Key
-        uses: garygrossgarten/github-action-scp@release
-        with:
-          host: ${{ secrets.HOST_DNS }}
-          privateKey: ${{ secrets.EC2_SSH_KEY }}
-          username: ${{ secrets.USERNAME }}
-          local: "./deploy.tar"
-          remote: /home/ec2-user/
+      
 
   build:
     name: Build App
