@@ -34,13 +34,13 @@ jobs:
           tar -cvf deploy.tar ../build/
 
       - name: Install SSH Key
-        uses: up9cloud/action-rsync@master
-        env:
-          HOST: ${{ secrets.HOST_DNS }}
-          KEY: ${{ secrets.EC2_SSH_KEY }}
-          USER: ${{ secrets.USERNAME }}
-          SOURCE: "./deploy.tar"
-          TARGET: /home/ec2-user/
+        uses: garygrossgarten/github-action-scp@release
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          privateKey: ${{ secrets.EC2_SSH_KEY }}
+          username: ${{ secrets.USERNAME }}
+          local: "./deploy.tar"
+          remote: /home/ec2-user/
 
   build:
     name: Build App
