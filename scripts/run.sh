@@ -2,6 +2,7 @@
 
 set -e
 
+echo "$DEV thee dev var val"
 if [ $DEV != "true" ]; then
     echo "Triggered Build Logic"
     python manage.py wait_for_db
