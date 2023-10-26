@@ -18,9 +18,10 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - DEV=false
-      - VIRTUAL_HOST=${DOMAIN_NAME}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
       - VIRTUAL_PORT=9090
       - VIRTUAL_PROTO=uwsgi
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
       - HTTPS_METHOD=noredirect
 
     networks:
