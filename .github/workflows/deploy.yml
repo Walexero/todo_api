@@ -63,7 +63,7 @@ jobs:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_NAME,DB_USER,DB_PASS,SECRET_KEY,ALLOWED_HOSTS,DB_PORT,APP_DOMAIN
+          envs: DB_NAME,DB_USER,DB_PASS,SECRET_KEY,ALLOWED_HOSTS,DB_PORT,APP_DOMAIN,VIRTUAL_HOST,VOLUME
           script_stop: true
           script: |
             tar -xvf ~/deploy.tar
