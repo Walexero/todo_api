@@ -1,0 +1,1 @@
+proxy_pass http://appistodo.ddns.net:9090

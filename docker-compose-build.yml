@@ -2,11 +2,14 @@ version: "3.9"
 
 services:
   app:
+    container_name: app
     build:
       context: .
     restart: always
     volumes:
-      - static-data:/vol/web
+      - static:/vol/web
+    expose:
+      - "9090"
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME}
@@ -15,6 +18,15 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - DEV=false
+      - VIRTUAL_HOST=${DOMAIN_NAME}
+      - VIRTUAL_PORT=9090
+      - VIRTUAL_PROTO=uwsgi
+      - HTTPS_METHOD=noredirect
+
+    networks:
+      - net
+      - backend
+
     depends_on:
       - db
 
@@ -28,18 +40,15 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
       - PORT=${DB_PORT}
-
-  proxy:
-    build: 
-      context: ./proxy
-    restart: always
-    depends_on:
-      - app
-    ports:
-      - 81:9000
-    volumes:
-      - static-data:/vol/static
+    networks:
+      - backend
 
 volumes:
   postgres-data:
-  static-data:
+  static:
+    name: ${VOLUME}
+
+networks:
+  net:
+    external: true
+  backend:

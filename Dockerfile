@@ -38,7 +38,7 @@ RUN chown -R django-user:django-user /vol && \
     chmod +x /scripts/run.sh
 
 WORKDIR /app
-EXPOSE 9000
+EXPOSE 9090
 
 ENV PATH="/scripts:/py/bin:$PATH"
 
