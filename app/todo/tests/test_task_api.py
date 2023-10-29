@@ -9,8 +9,8 @@ from django.urls import reverse
 
 # from core import models
 
-
 TASK_URL = reverse("todo:task-list")
+# CREATE_TASK_URL = reverse("todo:task-create")
 
 
 def detail_url(task_id):
@@ -69,6 +69,23 @@ class PrivateTaskApiTest(TestCase):
         self.user = create_user()
         self.client.force_authenticate(self.user)
         self.todo = create_todo(self.user)
+
+        self.payload = {
+            "todo_id": self.todo.id,
+            "task": "Test Task",
+            "completed": False,
+        }
+
+    def test_create_tasks(self):
+        """
+        Test that the task was created through
+        the api call
+        """
+        res = self.client.post(TASK_URL, self.payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        task = Task.objects.get(todo__id=self.payload["todo_id"])
+        self.assertTrue(task.task, self.payload["task"])
 
     def test_get_tasks(self):
         """

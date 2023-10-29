@@ -7,7 +7,7 @@ from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from todo.serializers import TodoSerializer, TaskSerializer
 from core.models import Todo, Task
 
@@ -68,14 +68,11 @@ class TodoViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(
         description="Deletes the specified task to delete. The task ID is required"
     ),
+    create=extend_schema(
+        description="Creates a new task related to a todo. The todo ID is required"
+    ),
 )
-class TaskViewSet(
-    viewsets.GenericViewSet,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.ListModelMixin,
-):
+class TaskViewSet(viewsets.ModelViewSet):
     """
     View for managing Tasks related to Todo
     """
@@ -85,8 +82,13 @@ class TaskViewSet(
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
+    def perform_create(self, serializer):
+        todo = get_object_or_404(Todo, id=self.request.data.get("todo_id"))
+        return serializer.save(todo=todo)
+
     def get_queryset(self):
         """
         Filter queryset to authenticated user
         """
-        return self.queryset.filter(todo__user=self.request.user).order_by("id")
+        if self.request.user.is_authenticated:
+            return self.queryset.filter(todo__user=self.request.user).order_by("id")

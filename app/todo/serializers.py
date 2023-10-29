@@ -12,10 +12,35 @@ class TaskSerializer(serializers.ModelSerializer):
     """
 
     # todo_title = serializers.CharField(source="todo.title")
+    todo_id = serializers.IntegerField(source="todo.id")
 
     class Meta:
         model = Task
-        fields = ["id", "task", "completed"]  # , "todo_title"
+        fields = ["id", "task", "completed", "todo_id"]  # , "todo_title"
+
+    def create(self, validated_data):
+        """
+        Creates a new task
+        """
+        todo = validated_data.pop("todo", None)
+        if todo is not None:
+            task = Task.objects.create(
+                todo=todo,
+                task=validated_data["task"],
+                completed=validated_data["completed"],
+            )
+            return task
+
+
+class TaskTodoSerializer(serializers.ModelSerializer):
+    """
+    Serializer to be used by the Todo when
+    for serializing a task
+    """
+
+    class Meta:
+        model = Task
+        fields = ["id", "task", "completed"]
 
 
 class TodoSerializer(serializers.ModelSerializer):
@@ -23,7 +48,7 @@ class TodoSerializer(serializers.ModelSerializer):
     Serializer for Todos
     """
 
-    tasks = TaskSerializer(
+    tasks = TaskTodoSerializer(
         many=True, required=False
     )  # serializers.StringRelatedField(many=True)
 
