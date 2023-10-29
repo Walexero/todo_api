@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "changeme")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(int(os.environ.get("DEBUG",0)))
+DEBUG = bool(int(os.environ.get("DEBUG", 0)))
 
 ALLOWED_HOSTS = []
 
@@ -40,6 +40,13 @@ else:
     )
 
 # Application definition
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ORIGIN_WHITELIST = ["http://localhost:1234", "http://0.0.0.0:9090"]
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost:1234", "http://0.0.0.0:9090"]
+
+CSRF_ALLOWED_ORIGINS = ["http://localhost:1234", "http://0.0.0.0:9090"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -53,10 +60,12 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "user",
     "drf_spectacular",
+    "corsheaders",
     "todo",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -97,7 +106,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASS"),
-        "PORT": int(os.environ.get("DB_PORT", 5432))
+        "PORT": int(os.environ.get("DB_PORT", 5432)),
     }
 }
 
