@@ -13,10 +13,14 @@ class TaskSerializer(serializers.ModelSerializer):
 
     # todo_title = serializers.CharField(source="todo.title")
     todo_id = serializers.IntegerField(source="todo.id")
+    todo_last_added = serializers.DateTimeField(
+        source="todo.last_added", required=False
+    )
 
     class Meta:
         model = Task
-        fields = ["id", "task", "completed", "todo_id"]  # , "todo_title"
+        fields = ["id", "task", "completed", "todo_id", "todo_last_added"]  #
+        read_only = ["todo_last_added"]
 
     def create(self, validated_data):
         """
