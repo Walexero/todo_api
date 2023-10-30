@@ -90,6 +90,23 @@ class PrivateTodoApiTest(TestCase):
 
         self.assertEqual(todo.title, payload["title"])
 
+    def test_create_todo_for_authenticated_user_without_title(self):
+        """
+        Test creating a todo for an authenticated user without a todo
+        title
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+        payload = {"title": ""}
+
+        res = self.client.post(TODO_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        todo = models.Todo.objects.get(id=res.data["id"])
+
+        self.assertEqual(todo.title, payload["title"])
+
     def test_retrieve_todos_for_unauthenticated_user(self):
         """
         Test retreiving todos for unauthenticated user

@@ -2,6 +2,7 @@
 Database Models
 """
 import json
+from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -10,6 +11,7 @@ from django.contrib.auth.models import (
 )
 
 from django.conf import settings
+from django.utils import timezone
 
 
 # Create your models here.
@@ -67,7 +69,18 @@ class Todo(models.Model):
     """
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    last_added = models.DateTimeField(auto_now=True, null=True, blank=True)
+    completed = models.BooleanField(default=False)
+
+    @property
+    def update_last_added(self):
+        self.last_added = timezone.now()
+        # return self.last_added
+
+    # @update_last_added.setter
+    # def update_last_added(self, value):
+    #     self.last_added = timezone.now()
 
     def __str__(self):
         return self.title
@@ -83,6 +96,4 @@ class Task(models.Model):
     completed = models.BooleanField(default=False)
 
     def __str__(self):
-        # return f'{"id": self.id,"task": self.task}'
-        # return json.dumps({"id": self.id, "task": self.task})
         return self.task

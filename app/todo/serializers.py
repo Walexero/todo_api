@@ -23,12 +23,16 @@ class TaskSerializer(serializers.ModelSerializer):
         Creates a new task
         """
         todo = validated_data.pop("todo", None)
+        # update the todo last_added using its property
+        todo.update_last_added
+
         if todo is not None:
             task = Task.objects.create(
                 todo=todo,
                 task=validated_data["task"],
                 completed=validated_data["completed"],
             )
+            todo.save()
             return task
 
 
@@ -88,5 +92,5 @@ class TodoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Todo
-        fields = ["id", "title", "tasks"]
-        read_only_fields = ["id"]
+        fields = ["id", "title", "tasks", "last_added", "completed"]
+        read_only_fields = ["id", "last_added"]

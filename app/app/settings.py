@@ -48,6 +48,8 @@ CSRF_TRUSTED_ORIGINS = ["http://localhost:1234", "http://0.0.0.0:9090"]
 
 CSRF_ALLOWED_ORIGINS = ["http://localhost:1234", "http://0.0.0.0:9090"]
 
+CORS_ALLOW_HEADERS = ["X-Custom-Header", "Authorization", "Content-Type"]
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

@@ -4,7 +4,6 @@ from rest_framework.test import APIClient
 from core.models import Todo, Task
 from todo.serializers import TaskSerializer
 from django.contrib.auth import get_user_model
-import json
 from django.urls import reverse
 
 # from core import models
@@ -86,6 +85,29 @@ class PrivateTaskApiTest(TestCase):
 
         task = Task.objects.get(todo__id=self.payload["todo_id"])
         self.assertTrue(task.task, self.payload["task"])
+
+    def test_create_task_update_todo_last_added(self):
+        """
+        Test that the Todo Last Added gets updated every type a task is added
+        """
+        res = self.client.post(TASK_URL, self.payload)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        previous_last_added = self.todo.last_added
+
+        payload2 = {
+            "todo_id": self.todo.id,
+            "task": "Diff Task",
+            "completed": False,
+        }
+        res = self.client.post(TASK_URL, payload2)
+
+        self.todo.refresh_from_db()
+        new_last_added = self.todo.last_added
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        self.assertFalse(previous_last_added == new_last_added)
 
     def test_get_tasks(self):
         """
