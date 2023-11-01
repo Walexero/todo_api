@@ -72,15 +72,11 @@ class Todo(models.Model):
     title = models.CharField(max_length=255, null=True, blank=True)
     last_added = models.DateTimeField(auto_now=True, null=True, blank=True)
     completed = models.BooleanField(default=False)
+    ordering = models.IntegerField(null=True, blank=True)
 
     @property
     def update_last_added(self):
         self.last_added = timezone.now()
-        # return self.last_added
-
-    # @update_last_added.setter
-    # def update_last_added(self, value):
-    #     self.last_added = timezone.now()
 
     def __str__(self):
         return self.title
@@ -92,8 +88,9 @@ class Task(models.Model):
     """
 
     todo = models.ForeignKey(Todo, on_delete=models.CASCADE, related_name="tasks")
-    task = models.CharField(max_length=1000)
+    task = models.CharField(max_length=1000, null=True, blank=True)
     completed = models.BooleanField(default=False)
+    ordering = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.task

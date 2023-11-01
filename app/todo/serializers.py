@@ -48,7 +48,7 @@ class TaskTodoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Task
-        fields = ["id", "task", "completed"]
+        fields = ["id", "task", "completed", "ordering"]
 
 
 class TodoSerializer(serializers.ModelSerializer):
@@ -96,5 +96,5 @@ class TodoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Todo
-        fields = ["id", "title", "tasks", "last_added", "completed"]
+        fields = ["id", "title", "tasks", "last_added", "completed", "ordering"]
         read_only_fields = ["id", "last_added"]

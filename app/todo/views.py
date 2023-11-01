@@ -32,7 +32,7 @@ from core.models import Todo, Task
 )
 class TodoViewSet(viewsets.ModelViewSet):
     """
-    Views to manage Todo APIs
+    Views to manage Todo APIs. The ordering field signifies the order in which the response is to be ordered in the UI
     """
 
     serializer_class = TodoSerializer
@@ -74,7 +74,7 @@ class TodoViewSet(viewsets.ModelViewSet):
 )
 class TaskViewSet(viewsets.ModelViewSet):
     """
-    View for managing Tasks related to Todo
+    View for managing Tasks related to Todo. . The ordering field signifies the order in which the response is to be ordered in the UI
     """
 
     serializer_class = TaskSerializer
