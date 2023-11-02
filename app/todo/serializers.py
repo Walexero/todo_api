@@ -4,6 +4,7 @@ Serializers for Todo API
 
 from rest_framework import serializers
 from core.models import Todo, Task
+from .mixins import BatchUpdateSerializerMixin
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -51,6 +52,39 @@ class TaskTodoSerializer(serializers.ModelSerializer):
         fields = ["id", "task", "completed", "ordering"]
 
 
+class TodoBatchOrderingUpdateSerializer(
+    BatchUpdateSerializerMixin, serializers.ListSerializer
+):
+    """
+    Serializer for Todo for updating batch or multiple Todo Ordering
+    """
+
+    def update(self, instance, validated_data):
+        """
+        Update Todo Orderings
+        """
+        print("the val dat", validated_data)
+        todo_mapping = {todo.id: todo for todo in instance}
+        print("the todo mapping", todo_mapping)
+
+        ordering_mapping = {item["ordering"]: item for item in validated_data}
+
+        updated_values = []
+
+        for ordering, todo in ordering_mapping.items():
+            todo = todo_mapping.get(todo["id"], None)
+            if todo:
+                todo.ordering = ordering
+                todo.save()
+                updated_values.append(todo)
+        return updated_values
+
+    class Meta:
+        model = Todo
+        fields = ["id", "ordering"]
+        # read_only_fields = ["id"]
+
+
 class TodoSerializer(serializers.ModelSerializer):
     """
     Serializer for Todos
@@ -66,6 +100,8 @@ class TodoSerializer(serializers.ModelSerializer):
         """
         for task in tasks:
             task_obj, created = Task.objects.get_or_create(todo=todo, **task)
+            task_obj.increment_ordering
+            print("the task asfter ordering", task_obj.ordering)
             todo.tasks.add(task_obj)
 
     def create(self, validated_data):
@@ -74,6 +110,8 @@ class TodoSerializer(serializers.ModelSerializer):
         """
         tasks = validated_data.pop("tasks", [])
         todo = Todo.objects.create(**validated_data)
+        todo.increment_ordering
+        print("the todo after ordering increment", todo.ordering)
         self._get_or_create_tasks(tasks, todo)
         return todo
 
@@ -95,6 +133,7 @@ class TodoSerializer(serializers.ModelSerializer):
         return instance
 
     class Meta:
+        list_serializer_class = TodoBatchOrderingUpdateSerializer
         model = Todo
         fields = ["id", "title", "tasks", "last_added", "completed", "ordering"]
-        read_only_fields = ["id", "last_added"]
+        read_only_fields = ["id", "last_added", "ordering"]

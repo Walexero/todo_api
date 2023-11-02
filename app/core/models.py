@@ -4,6 +4,7 @@ Database Models
 import json
 from datetime import datetime
 from django.db import models
+from django.db.models import Max
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -78,6 +79,17 @@ class Todo(models.Model):
     def update_last_added(self):
         self.last_added = timezone.now()
 
+    @property
+    def increment_ordering(self):
+        user_todos = Todo.objects.filter(user=self.user)
+        if len(user_todos) == 1:
+            user_todos[0].ordering = 1
+            user_todos[0].save()
+        elif len(user_todos) > 1:
+            highest_ordering = user_todos.aggregate(Max("ordering"))
+            self.ordering = highest_ordering["ordering__max"] + 1
+            self.save()
+
     def __str__(self):
         return self.title
 
@@ -91,6 +103,17 @@ class Task(models.Model):
     task = models.CharField(max_length=1000, null=True, blank=True)
     completed = models.BooleanField(default=False)
     ordering = models.IntegerField(null=True, blank=True)
+
+    @property
+    def increment_ordering(self):
+        todo_tasks = Task.objects.filter(todo=self.todo)
+        if len(todo_tasks) == 1:
+            todo_tasks[0].ordering = 1
+            todo_tasks[0].save()
+        elif len(todo_tasks) > 1:
+            highest_ordering = todo_tasks.aggregate(Max("ordering"))
+            self.ordering = highest_ordering["ordering_max"] + 1
+            self.save()
 
     def __str__(self):
         return self.task

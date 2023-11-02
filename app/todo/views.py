@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render, get_object_or_404
 from todo.serializers import TodoSerializer, TaskSerializer
 from core.models import Todo, Task
+from .mixins import BatchUpdateRouteMixin
 
 # Create your views here.
 
@@ -30,8 +31,8 @@ from core.models import Todo, Task
         description="Retrieves a specified todo based on the todo ID"
     ),
 )
-class TodoViewSet(viewsets.ModelViewSet):
-    """
+class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
+    """todo-
     Views to manage Todo APIs. The ordering field signifies the order in which the response is to be ordered in the UI
     """
 
@@ -47,8 +48,11 @@ class TodoViewSet(viewsets.ModelViewSet):
         if self.request.user.is_authenticated:
             serializer.save(user=self.request.user)
 
-    def get_queryset(self, *args, **kwargs):
+    def get_queryset(self, ids=None):  #
         if self.request.user.is_authenticated:
+            if ids:
+                return self.queryset.filter(user=self.request.user, id__in=ids)
+
             return self.queryset.filter(user=self.request.user).order_by("-id")
 
 

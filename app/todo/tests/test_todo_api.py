@@ -2,12 +2,14 @@ from core import models
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.db.models import Max
 from rest_framework.test import APIClient
 from rest_framework import status
 from todo.serializers import TodoSerializer
 
 
 TODO_URL = reverse("todo:todo-list")
+TODO_BATCH_UPDATE_URL = reverse("todo:todo-batch-update")
 
 
 def detail_url(todo_id):
@@ -81,7 +83,7 @@ class PrivateTodoApiTest(TestCase):
         self.user = create_user()
         self.client.force_authenticate(self.user)
 
-        payload = {"title": "Test todo"}
+        payload = {"title": "Test todo", "ordering": 1}
 
         res = self.client.post(TODO_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -106,6 +108,44 @@ class PrivateTodoApiTest(TestCase):
         todo = models.Todo.objects.get(id=res.data["id"])
 
         self.assertEqual(todo.title, payload["title"])
+
+    def test_create_todo_for_authenticated_user_evaluates_right_aggregate(self):
+        """
+        Test the created todo for the authentiated user returns the right aggregation value
+        """
+        user = create_user()
+        todo1 = create_todo(user=user)
+        todo1.ordering = 1
+        todo1.save()
+        todo2 = create_todo(user=user)
+        todo2.ordering = 2
+        todo2.save()
+        aggregates = models.Todo.objects.filter(user=user).aggregate(Max("ordering"))
+        self.assertEqual(aggregates["ordering__max"], 2)
+
+    def test_create_todo_for_authenticated_user_to_validate_ordering_increment(self):
+        """
+        Test the created todo for the authenticated user gets autoincremented whenever a new todo is added
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+        payload = {"title": "vdfafsdfsf"}
+        payload2 = {"title": "ieofkdjlsdfjdjf"}
+
+        res = self.client.post(TODO_URL, payload)
+        res2 = self.client.post(TODO_URL, payload2)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+
+        todo1 = models.Todo.objects.get(id=res.data["id"])
+        todo2 = models.Todo.objects.get(id=res2.data["id"])
+
+        todos_ordering_max = models.Todo.objects.filter(user=self.user).aggregate(
+            Max("ordering")
+        )
+
+        self.assertTrue(todos_ordering_max["ordering__max"] == todo2.ordering)
 
     def test_retrieve_todos_for_unauthenticated_user(self):
         """
@@ -253,6 +293,32 @@ class PrivateTodoApiTest(TestCase):
         res = self.client.patch(url, payload)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["title"], payload["title"])
+
+    def test_partial_update_of_todo_ordering_for_multiplee_todos(self):
+        """
+        Test a put request on a todo object
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+        todo1 = create_todo(self.user)
+        todo2 = create_todo(self.user)
+        todo3 = create_todo(self.user)
+
+        payload = {
+            "ordering_list": [
+                {"id": todo1.id, "ordering": todo3.ordering},
+                {"id": todo2.id, "ordering": todo2.ordering},
+                {"id": todo3.id, "ordering": todo1.ordering},
+            ]
+        }
+
+        res = self.client.patch(TODO_BATCH_UPDATE_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        for todo in [todo1, todo2, todo3]:
+            todo.refresh_from_db()
+        print("the resp", res.data)
+        # self.assertEqual(res)
 
     def test_partial_update_of_user_todo_by_another_user(self):
         """
