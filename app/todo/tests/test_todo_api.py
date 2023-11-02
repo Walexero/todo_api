@@ -9,7 +9,7 @@ from todo.serializers import TodoSerializer
 
 
 TODO_URL = reverse("todo:todo-list")
-TODO_BATCH_UPDATE_URL = reverse("todo:todo-batch-update")
+TODO_BATCH_UPDATE_URL = reverse("todo:todo-batch_update")
 
 
 def detail_url(todo_id):
@@ -66,6 +66,10 @@ class PrivateTodoApiTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
+
+    # def tearDown(self):
+    #     models.Todo.all().delete()
+    #     models.User.all().delete()
 
     def test_create_todo_for_unauthenticated_user(self):
         """
@@ -294,31 +298,33 @@ class PrivateTodoApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["title"], payload["title"])
 
-    def test_partial_update_of_todo_ordering_for_multiplee_todos(self):
+    def test_partial_update_of_todo_ordering_for_multiple_todos(self):
         """
         Test a put request on a todo object
         """
-        self.user = create_user()
-        self.client.force_authenticate(self.user)
-
-        todo1 = create_todo(self.user)
-        todo2 = create_todo(self.user)
-        todo3 = create_todo(self.user)
+        user = create_user(email="newuser@example.com")
+        self.client.force_authenticate(user)
+        todo1 = create_todo(user)
+        todo1.increment_ordering
+        todo2 = create_todo(user)
+        todo2.increment_ordering
+        todo3 = create_todo(user)
+        todo3.increment_ordering
 
         payload = {
             "ordering_list": [
                 {"id": todo1.id, "ordering": todo3.ordering},
-                {"id": todo2.id, "ordering": todo2.ordering},
-                {"id": todo3.id, "ordering": todo1.ordering},
+                {"id": todo2.id, "ordering": todo1.ordering},
+                {"id": todo3.id, "ordering": todo2.ordering},
             ]
         }
-
-        res = self.client.patch(TODO_BATCH_UPDATE_URL, payload)
+        res = self.client.patch(TODO_BATCH_UPDATE_URL, payload, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        for todo in [todo1, todo2, todo3]:
-            todo.refresh_from_db()
-        print("the resp", res.data)
-        # self.assertEqual(res)
+
+        todos = models.Todo.objects.filter(user=user)
+
+        serializer = TodoSerializer(todos, many=True)
+        self.assertEqual(res.data, serializer.data)
 
     def test_partial_update_of_user_todo_by_another_user(self):
         """

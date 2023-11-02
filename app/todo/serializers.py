@@ -7,6 +7,36 @@ from core.models import Todo, Task
 from .mixins import BatchUpdateSerializerMixin
 
 
+class BatchOrderingUpdateSerializer(
+    BatchUpdateSerializerMixin, serializers.ListSerializer
+):
+    """
+    Serializer for Todo for updating batch or multiple Todo Ordering
+    """
+
+    def update(self, instance, validated_data):
+        """
+        Update Model Orderings
+        """
+        model_mapping = {model.id: model for model in instance}
+
+        ordering_mapping = {item["ordering"]: item for item in validated_data}
+
+        updated_values = []
+
+        for ordering, model in ordering_mapping.items():
+            model = model_mapping.get(model["id"], None)
+            if model:
+                model.ordering = ordering
+                model.save()
+                updated_values.append(model)
+        return updated_values
+
+    class Meta:
+        fields = ["id", "ordering"]
+        read_only_fields = ["id"]
+
+
 class TaskSerializer(serializers.ModelSerializer):
     """
     Serializer for Tasks
@@ -19,9 +49,17 @@ class TaskSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+        list_serializer_class = BatchOrderingUpdateSerializer
         model = Task
-        fields = ["id", "task", "completed", "todo_id", "todo_last_added"]  #
-        read_only = ["todo_last_added"]
+        fields = [
+            "id",
+            "task",
+            "completed",
+            "todo_id",
+            "todo_last_added",
+            "ordering",
+        ]  #
+        read_only = ["todo_last_added", "ordering"]
 
     def create(self, validated_data):
         """
@@ -37,6 +75,7 @@ class TaskSerializer(serializers.ModelSerializer):
                 task=validated_data["task"],
                 completed=validated_data["completed"],
             )
+            task.increment_ordering
             todo.save()
             return task
 
@@ -50,39 +89,7 @@ class TaskTodoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ["id", "task", "completed", "ordering"]
-
-
-class TodoBatchOrderingUpdateSerializer(
-    BatchUpdateSerializerMixin, serializers.ListSerializer
-):
-    """
-    Serializer for Todo for updating batch or multiple Todo Ordering
-    """
-
-    def update(self, instance, validated_data):
-        """
-        Update Todo Orderings
-        """
-        print("the val dat", validated_data)
-        todo_mapping = {todo.id: todo for todo in instance}
-        print("the todo mapping", todo_mapping)
-
-        ordering_mapping = {item["ordering"]: item for item in validated_data}
-
-        updated_values = []
-
-        for ordering, todo in ordering_mapping.items():
-            todo = todo_mapping.get(todo["id"], None)
-            if todo:
-                todo.ordering = ordering
-                todo.save()
-                updated_values.append(todo)
-        return updated_values
-
-    class Meta:
-        model = Todo
-        fields = ["id", "ordering"]
-        # read_only_fields = ["id"]
+        read_only_fields = ["ordering"]
 
 
 class TodoSerializer(serializers.ModelSerializer):
@@ -101,7 +108,6 @@ class TodoSerializer(serializers.ModelSerializer):
         for task in tasks:
             task_obj, created = Task.objects.get_or_create(todo=todo, **task)
             task_obj.increment_ordering
-            print("the task asfter ordering", task_obj.ordering)
             todo.tasks.add(task_obj)
 
     def create(self, validated_data):
@@ -111,7 +117,6 @@ class TodoSerializer(serializers.ModelSerializer):
         tasks = validated_data.pop("tasks", [])
         todo = Todo.objects.create(**validated_data)
         todo.increment_ordering
-        print("the todo after ordering increment", todo.ordering)
         self._get_or_create_tasks(tasks, todo)
         return todo
 
@@ -133,7 +138,7 @@ class TodoSerializer(serializers.ModelSerializer):
         return instance
 
     class Meta:
-        list_serializer_class = TodoBatchOrderingUpdateSerializer
+        list_serializer_class = BatchOrderingUpdateSerializer
         model = Todo
         fields = ["id", "title", "tasks", "last_added", "completed", "ordering"]
         read_only_fields = ["id", "last_added", "ordering"]

@@ -76,7 +76,7 @@ class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
         description="Creates a new task related to a todo. The todo ID is required"
     ),
 )
-class TaskViewSet(viewsets.ModelViewSet):
+class TaskViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
     """
     View for managing Tasks related to Todo. . The ordering field signifies the order in which the response is to be ordered in the UI
     """
@@ -90,9 +90,14 @@ class TaskViewSet(viewsets.ModelViewSet):
         todo = get_object_or_404(Todo, id=self.request.data.get("todo_id"))
         return serializer.save(todo=todo)
 
-    def get_queryset(self):
+    def get_queryset(self, ids=None):
         """
         Filter queryset to authenticated user
         """
         if self.request.user.is_authenticated:
+            if ids:
+                return self.queryset.filter(
+                    todo__user=self.request.user, id__in=ids
+                ).order_by("id")
+
             return self.queryset.filter(todo__user=self.request.user).order_by("id")

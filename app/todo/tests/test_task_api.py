@@ -1,6 +1,7 @@
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
+from django.db.models import Max
 from core.models import Todo, Task
 from todo.serializers import TaskSerializer
 from django.contrib.auth import get_user_model
@@ -9,6 +10,8 @@ from django.urls import reverse
 # from core import models
 
 TASK_URL = reverse("todo:task-list")
+TASK_BATCH_UPDATE_URL = reverse("todo:task-batch_update")
+
 # CREATE_TASK_URL = reverse("todo:task-create")
 
 
@@ -109,6 +112,25 @@ class PrivateTaskApiTest(TestCase):
 
         self.assertFalse(previous_last_added == new_last_added)
 
+    def test_create_task_to_validate_ordering_increment(self):
+        """
+        Test the created task gets auto incremented whenever a new task is added
+        """
+        payload2 = {"task": "klsfjldsaf", "todo_id": self.todo.id, "completed": True}
+
+        res = self.client.post(TASK_URL, self.payload)
+        res2 = self.client.post(TASK_URL, payload2)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+        task1 = Task.objects.get(id=res.data["id"])
+        task2 = Task.objects.get(id=res2.data["id"])
+
+        tasks_ordering_max = Task.objects.filter(todo=self.todo).aggregate(
+            Max("ordering")
+        )
+
+        self.assertEqual(res2.data["ordering"], tasks_ordering_max["ordering__max"])
+
     def test_get_tasks(self):
         """
         Tests that the task was retrieved for authenticated users
@@ -174,6 +196,34 @@ class PrivateTaskApiTest(TestCase):
         serializer = TaskSerializer(task)
 
         self.assertQuerySetEqual(res.data, serializer.data)
+
+    def test_batch_update_task_ordering(self):
+        """
+        Test updating a batch of tasks ordering
+        """
+        task1 = create_task(self.todo, "ksdlfjsldf")
+        task1.increment_ordering
+        task2 = create_task(self.todo, "ksldklsdf")
+        task2.increment_ordering
+        task3 = create_task(self.todo, "kdfjoviaisd")
+        task3.increment_ordering
+
+        payload = {
+            "ordering_list": [
+                {"id": task1.id, "ordering": task3.ordering},
+                {"id": task2.id, "ordering": task1.ordering},
+                {"id": task3.id, "ordering": task2.ordering},
+            ]
+        }
+        res = self.client.patch(TASK_BATCH_UPDATE_URL, payload, format="json")
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        tasks = Task.objects.filter(todo=self.todo).order_by("id")
+
+        serializer = TaskSerializer(tasks, many=True)
+
+        self.assertEqual(serializer.data, res.data)
 
     def test_delete_task_without_other_task(self):
         """

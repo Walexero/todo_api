@@ -25,7 +25,7 @@ class BatchUpdateSerializerMixin:
 
 class BatchUpdateRouteMixin:
     """
-    Mixin that adds a  `batch_update` API route to a viewset. To be used with BatchUpdateSerializerMixin & TodoUpdateBatchOrderingSerializer
+    Mixin that adds a  `batch_update` API route to a viewset. To be used with BatchUpdateSerializerMixin & A Serializer that has the BatchUpdateSerializerMixin as a mixin
     """
 
     def get_object(self):

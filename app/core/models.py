@@ -82,10 +82,11 @@ class Todo(models.Model):
     @property
     def increment_ordering(self):
         user_todos = Todo.objects.filter(user=self.user)
-        if len(user_todos) == 1:
-            user_todos[0].ordering = 1
-            user_todos[0].save()
-        elif len(user_todos) > 1:
+        user_todos_count = user_todos.count()
+        if user_todos_count == 1:
+            self.ordering = 1
+            self.save()
+        elif user_todos_count > 1:
             highest_ordering = user_todos.aggregate(Max("ordering"))
             self.ordering = highest_ordering["ordering__max"] + 1
             self.save()
@@ -107,12 +108,13 @@ class Task(models.Model):
     @property
     def increment_ordering(self):
         todo_tasks = Task.objects.filter(todo=self.todo)
-        if len(todo_tasks) == 1:
-            todo_tasks[0].ordering = 1
-            todo_tasks[0].save()
-        elif len(todo_tasks) > 1:
+        todo_tasks_count = todo_tasks.count()
+        if todo_tasks_count == 1:
+            self.ordering = 1
+            self.save()
+        elif todo_tasks_count > 1:
             highest_ordering = todo_tasks.aggregate(Max("ordering"))
-            self.ordering = highest_ordering["ordering_max"] + 1
+            self.ordering = highest_ordering["ordering__max"] + 1
             self.save()
 
     def __str__(self):
