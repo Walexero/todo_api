@@ -1,6 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
 
 class BatchUpdateSerializerMixin:
@@ -14,7 +15,6 @@ class BatchUpdateSerializerMixin:
         return test
 
     def to_internal_value(self, data):
-        print("the dat", data)
         # ret = super().to_internal_value(data)
         if not isinstance(data, list):
             raise ValidationError("Invalid Data Supplied,a Dict is expected")
@@ -48,6 +48,8 @@ class BatchUpdateRouteMixin:
     @action(detail=False, methods=["PATCH"], url_name="batch_update")
     def batch_update(self, request, *args, **kwargs):
         ids = self.validate_ids(request.data["ordering_list"])
+        self.validate_orderings(request.data["ordering_list"])
+
         queryset = self.filter_queryset(self.get_queryset(ids=ids))
         serializer = self.get_serializer(
             queryset, data=request.data["ordering_list"], partial=True, many=True
@@ -67,5 +69,10 @@ class BatchUpdateRouteMixin:
 
         return [data]
 
-    def validate
-    # TODO: val ordering
+    def validate_orderings(self, data, field="ordering", unique=True):
+        if isinstance(data, list):
+            ordering_list = [int(i["ordering"]) for i in data]
+
+            if unique and len(ordering_list) != len(set(ordering_list)):
+                raise ValidationError("Cannot assign same ordering to multiple Todos")
+            return ordering_list
