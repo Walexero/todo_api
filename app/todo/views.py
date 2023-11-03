@@ -30,6 +30,7 @@ from .mixins import BatchUpdateRouteMixin
     retrieve=extend_schema(
         description="Retrieves a specified todo based on the todo ID"
     ),
+    batch_update=extend_schema(description="Update Specified Todo Ordering"),
 )
 class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
     """todo-
@@ -75,6 +76,7 @@ class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
     create=extend_schema(
         description="Creates a new task related to a todo. The todo ID is required"
     ),
+    batch_update=extend_schema(description="Update Specified Task Ordering"),
 )
 class TaskViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
     """

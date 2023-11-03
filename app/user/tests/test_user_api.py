@@ -11,6 +11,8 @@ from rest_framework import status
 CREATE_USER_URL = reverse("user:create")
 TOKEN_URL = reverse("user:token")
 ME_URL = reverse("user:me")
+CHANGE_PASSWORD_URL = reverse("user:change_password")
+USER_UPDATE_INFO = reverse("user:update_info")
 
 
 def create_user(**params):
@@ -177,3 +179,65 @@ class PrivateUserApiTests(TestCase):
         # payload.pop("password")
         self.assertTrue(self.user.check_password(payload["password"]))
         self.assertEqual(self.user.first_name, payload["first_name"])
+
+    def test_password_change_for_authenticated_user_with_bad_credential(self):
+        """
+        Test that the authenticated user is able to change their password with bad credential
+        """
+        self.payload["email"] = "changepassword@example.com"
+        user = create_user(**self.payload)
+        user.is_active = True
+        user.save()
+        self.client.force_authenticate(user)
+
+        payload = {
+            "password": "Awesomeuser",
+            "password2": "Awesomeuser",
+            "old_password": "Awesomeuser",
+        }
+
+        res = self.client.put(CHANGE_PASSWORD_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_change_for_authenticated_user_with_right_credential(self):
+        """
+        Test that the authenticated user is able to change their password with bad credential
+        """
+        self.payload["email"] = "changepassword@example.com"
+        user = create_user(**self.payload)
+        user.is_active = True
+        user.save()
+        self.client.force_authenticate(user)
+
+        payload = {
+            "password": "Awesomeuser",
+            "password2": "Awesomeuser",
+            "old_password": self.payload["password"],
+        }
+
+        res = self.client.put(CHANGE_PASSWORD_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_update_user_info_with_bad_credential(self):
+        """
+        Test that the user info cannot be updated with bad credentials
+        """
+        self.payload.pop("password")
+        self.payload["email"] = "sdkfasdfksadjfsdf.com"
+
+        res = self.client.put(USER_UPDATE_INFO, self.payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_user_info_with_right_credential(self):
+        """
+        Test that the user info can be updated successfully
+        """
+        self.payload.pop("password")
+        self.payload["email"] = "sdkfasdfksadjfsdf@email.com"
+
+        res = self.client.put(USER_UPDATE_INFO, self.payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)

@@ -11,7 +11,13 @@ from drf_spectacular.utils import (
     OpenApiExample,
 )
 from drf_spectacular.types import OpenApiTypes
-from user.serializers import UserSerializer, AuthTokenSerializer
+from user.serializers import (
+    UserSerializer,
+    AuthTokenSerializer,
+    ChangePasswordSerializer,
+    UpdateUserSerializer,
+)
+from django.contrib.auth import get_user_model
 
 from django.shortcuts import render
 
@@ -53,6 +59,35 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        """
+        Retrieve and return the authenticated user
+        """
+        return self.request.user
+
+
+@extend_schema_view(
+    put=extend_schema(description="Change Users Password"),
+)
+class ChangePasswordView(generics.UpdateAPIView):
+    queryset = get_user_model()
+    authentication_classes = [authentication.TokenAuthentication]
+    permissions_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def get_object(self):
+        """
+        Retrieve and return the authenticated user
+        """
+        return self.request.user
+
+
+class UpdateInfoView(generics.UpdateAPIView):
+    queryset = get_user_model()
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UpdateUserSerializer
 
     def get_object(self):
         """
