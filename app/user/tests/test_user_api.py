@@ -4,6 +4,9 @@ Test for the User API
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.authtoken.models import Token
 
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -13,6 +16,8 @@ TOKEN_URL = reverse("user:token")
 ME_URL = reverse("user:me")
 CHANGE_PASSWORD_URL = reverse("user:change_password")
 USER_UPDATE_INFO = reverse("user:update_info")
+TODO_URL = reverse("todo:todo-list")
+RESET_PWD_URL = reverse("user:password_reset")
 
 
 def create_user(**params):
@@ -32,6 +37,7 @@ class PublicUserApiTests(TestCase):
             "last_name": "User",
             "email": "user@example.com",
             "password": "Awesomeuser123",
+            "password2": "Awesomeuser123",
         }
 
     def test_create_user_success(self):
@@ -40,7 +46,7 @@ class PublicUserApiTests(TestCase):
         """
 
         # user = create_user(payload)
-
+        self.payload["password2"] = self.payload["password"]
         res = self.client.post(CREATE_USER_URL, self.payload)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
@@ -49,16 +55,28 @@ class PublicUserApiTests(TestCase):
         self.assertTrue(user.check_password(self.payload["password"]))
         self.assertNotIn("password", res.data)
 
+    def test_create_user_without_matching_password_failure(self):
+        """
+        Test creating a user fails if the password doesn't match
+        """
+
+        # user = create_user(payload)
+        self.payload["password2"] = "ldksjfldsjflasd"
+        res = self.client.post(CREATE_USER_URL, self.payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_user_with_email_exists_error(self):
         """
         Test error returned if user with email exists
         """
+        self.payload.pop("password2")
         create_user(**self.payload)
         payload = {
             "first_name": "TestUser",
             "last_name": "User",
             "email": self.payload["email"],
             "password": self.payload["password"],
+            "password2": self.payload["password"],
         }
 
         res = self.client.post(CREATE_USER_URL, payload)
@@ -81,6 +99,7 @@ class PublicUserApiTests(TestCase):
         """
         Test generates token for valid credentials
         """
+        self.payload.pop("password2")
         user = create_user(**self.payload)
         user.is_active = True
         user.save()
@@ -96,6 +115,7 @@ class PublicUserApiTests(TestCase):
         """
         Test against creating token for bad credentials
         """
+        self.payload.pop("password2")
         user = create_user(**self.payload)
         user.is_active = True
         user.save()
@@ -109,6 +129,7 @@ class PublicUserApiTests(TestCase):
         """
         Test posting a blank password returns an Error
         """
+        self.payload.pop("password2")
         user = create_user(**self.payload)
         user.is_active = True
         user.save()
@@ -118,12 +139,85 @@ class PublicUserApiTests(TestCase):
         self.assertNotIn("token", "")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_token_with_expiration_elapse_expires_token(self):
+        """
+        Test that the created token after its expiration timeframe expires
+        """
+        self.payload.pop("password2")
+        user = create_user(**self.payload)
+        user.is_active = True
+        user.save()
+        payload = {"email": self.payload["email"], "password": self.payload["password"]}
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertIn("token", res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_token = res.data["token"]
+
+        token = Token.objects.get(user=user)
+        token.created = timezone.now() - timedelta(3)
+
+        res_get_todos = self.client.get(
+            TODO_URL,
+            HTTP_AUTHORIZATION=res_token,
+        )
+        self.assertEqual(
+            res_get_todos.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_create_token_and_expire_token_and_token_updated_when_new_token_requested(
+        self,
+    ):
+        """
+        Test that a new token is created after a token has expired
+        """
+        self.payload.pop("password2")
+        user = create_user(**self.payload)
+        user.is_active = True
+        user.save()
+        payload = {"email": self.payload["email"], "password": self.payload["password"]}
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertIn("token", res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_token = res.data["token"]
+
+        token = Token.objects.get(user=user)
+        token.created = timezone.now() - timedelta(3)
+        token.save()
+
+        res_get_todos = self.client.get(TODO_URL, HTTP_AUTHORIZATION=res_token)
+        self.assertEqual(
+            res_get_todos.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+        res_new_token = self.client.post(TOKEN_URL, payload)
+        self.assertIn("token", res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(res_new_token.data["token"], res_token)
+        # self.assertTrue(res_new_token.data["token"] != res_token)
+
     def test_retrieve_user_unauthorize(self):
         """
         Test authentication is required for users
         """
         res = self.client.get(ME_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_reset_password(self):
+        """
+        Test the reset password sends the reset email to the user
+        """
+        self.payload.pop("password2")
+        user = create_user(**self.payload)
+
+        reset_payload = {"email": self.payload["email"]}
+
+        res = self.client.post(RESET_PWD_URL, reset_payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
 
 
 class PrivateUserApiTests(TestCase):
@@ -170,14 +264,14 @@ class PrivateUserApiTests(TestCase):
         payload = {
             "first_name": "User",
             "last_name": "Updated",
-            "password": "updatedUser123",
+            "email": "newemailforuser@example.com",
         }
-        res = self.client.patch(ME_URL, payload)
+        res = self.client.put(USER_UPDATE_INFO, payload)
         self.user.refresh_from_db()
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         # payload.pop("password")
-        self.assertTrue(self.user.check_password(payload["password"]))
+        self.assertTrue(self.user.email == payload["email"])
         self.assertEqual(self.user.first_name, payload["first_name"])
 
     def test_password_change_for_authenticated_user_with_bad_credential(self):
@@ -239,5 +333,29 @@ class PrivateUserApiTests(TestCase):
         self.payload["email"] = "sdkfasdfksadjfsdf@email.com"
 
         res = self.client.put(USER_UPDATE_INFO, self.payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_change_password_without_matching_password_fails(self):
+        """
+        Test that the change password fails if the password and the confirm password do not match
+        """
+        payload = {"password": "Awesomeuser", "password2": "Aesomeuser"}
+
+        res = self.client.put(CHANGE_PASSWORD_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_change_password_with_matching_password_succeeds(self):
+        """
+        Test that the change password succeeds if the passwords match
+        """
+        payload = {
+            "password": "Awesomeuser",
+            "password2": "Awesomeuser",
+            "old_password": self.payload["password"],
+        }
+
+        res = self.client.put(CHANGE_PASSWORD_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)

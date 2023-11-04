@@ -7,7 +7,14 @@ from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import gettext as _
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
-from rest_framework import serializers
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode as uid_decoder
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework import serializers, exceptions
+from dj_rest_auth.serializers import (
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -26,18 +33,49 @@ class UserSerializer(serializers.ModelSerializer):
         """
         return get_user_model().objects.create_user(**validated_data)
 
-    def update(self, instance, validated_data):
-        """
-        Update the User Instance and return it
-        """
-        password = validated_data.pop("password", None)
-        user = super().update(instance, validated_data)
+    # def update(self, instance, validated_data):
+    #     """
+    #     Update the User Instance and return it
+    #     """
+    #     password = validated_data.pop("password", None)
+    #     user = super().update(instance, validated_data)
 
-        if password:
-            user.set_password(password)
-            user.save()
+    #     if password:
+    #         user.set_password(password)
+    #         user.save()
 
-        return user
+    #     return user
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer to create a new user
+    """
+
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = ["email", "password", "password2", "first_name", "last_name"]
+        extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError(
+                {"password": "Password fields didn't match."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        """
+        Create and return a user with encrypted password
+        """
+        # remove the password2 after validation
+        validated_data.pop("password2")
+        return get_user_model().objects.create_user(**validated_data)
 
 
 class AuthTokenSerializer(serializers.Serializer):
@@ -133,6 +171,7 @@ class UpdateUserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 _("Unable to authenticate request"), code="authorization"
             )
+
         instance.first_name = validated_data["first_name"]
         instance.last_name = validated_data["last_name"]
         instance.email = validated_data["email"]
@@ -140,3 +179,36 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class ResetPasswordSerializer(PasswordResetSerializer):
+    """
+    Serializer to reset users password
+    """
+
+    def get_email_options(self):
+        return {"html_email_template_name": "registration/password_reset_email.html"}
+
+
+class ResetPasswordConfirmSerializer(PasswordResetConfirmSerializer):
+    """
+    Serializer to for resetting the password confirm view and updating the user password
+    """
+
+    def validate(self, attrs):
+        self._errors = {}
+
+        # Decode the uidb64 to uid to get User object
+        try:
+            uid = force_str(uid_decoder(attrs["uid"]))
+            self.user = get_user_model()._default_manager.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, get_user_model().DoesNotExist):
+            raise exceptions.ValidationError({"uid": ["Invalid value"]})
+
+        if self.attrs["new_password1"] != self.attrs["new_password2"]:
+            raise exceptions.ValidationError({"password": ["Password Does Not Match"]})
+
+        if not default_token_generator.check_token(self.user, attrs["token"]):
+            raise exceptions.ValidationError({"token": ["Invalid Token Value"]})
+
+        return attrs

@@ -1,9 +1,10 @@
 """
 Views for the User
 """
-from rest_framework import generics, authentication, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.settings import api_settings
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -13,13 +14,19 @@ from drf_spectacular.utils import (
 from drf_spectacular.types import OpenApiTypes
 from user.serializers import (
     UserSerializer,
+    UserCreateSerializer,
     AuthTokenSerializer,
     ChangePasswordSerializer,
     UpdateUserSerializer,
 )
+from .authentication import ExpiringTokenAuthentication
 from django.contrib.auth import get_user_model
-
+from django.utils import timezone
+from django.utils.translation import gettext as _
 from django.shortcuts import render
+from rest_framework.response import Response
+from datetime import timedelta
+from dj_rest_auth.views import PasswordResetConfirmView
 
 
 # Create your views here.
@@ -28,7 +35,7 @@ class CreateUserView(generics.CreateAPIView):
     View to Create a new user in the System
     """
 
-    serializer_class = UserSerializer
+    serializer_class = UserCreateSerializer
 
 
 class CreateTokenView(ObtainAuthToken):
@@ -39,25 +46,39 @@ class CreateTokenView(ObtainAuthToken):
     serializer_class = AuthTokenSerializer
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
 
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            token, created = Token.objects.get_or_create(
+                user=serializer.validated_data["user"]
+            )
+
+            current_time = timezone.now()
+            if not created and token.created < (current_time - timedelta(3)):
+                token.delete()
+                print(serializer)
+                token = Token.objects.create(
+                    user=serializer.validated_data["user"]
+                )  # serializer.object["user"]
+                token.created = current_time
+                token.save()
+
+            return Response({"token": token.key})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @extend_schema_view(
     get=extend_schema(
         description="Returns user's details if the user is authenticated."
     ),
-    patch=extend_schema(
-        description="Edits user's details and returns the modified details. Only a single property from the users details can be modified",
-    ),
-    put=extend_schema(
-        description="Edits user's details and returns the modified details"
-    ),
 )
-class ManageUserView(generics.RetrieveUpdateAPIView):
+class ManageUserView(generics.RetrieveAPIView):
     """
     Manage the authenticated user
     """
 
     serializer_class = UserSerializer
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [ExpiringTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
@@ -72,9 +93,10 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 )
 class ChangePasswordView(generics.UpdateAPIView):
     queryset = get_user_model()
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [ExpiringTokenAuthentication]
     permissions_classes = [permissions.IsAuthenticated]
     serializer_class = ChangePasswordSerializer
+    http_method_names = ["put"]
 
     def get_object(self):
         """
@@ -83,14 +105,33 @@ class ChangePasswordView(generics.UpdateAPIView):
         return self.request.user
 
 
+@extend_schema_view(
+    put=extend_schema(description="Update Users Profile"),
+)
 class UpdateInfoView(generics.UpdateAPIView):
     queryset = get_user_model()
-    authentication_classes = [authentication.TokenAuthentication]
+    authentication_classes = [ExpiringTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UpdateUserSerializer
+    http_method_names = ["put"]
 
     def get_object(self):
         """
         Retrieve and return the authenticated user
         """
         return self.request.user
+
+
+class ResetUserPasswordView(PasswordResetConfirmView):
+    """
+    View for resetting user's password
+    """
+
+    uid = None
+    token = None
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": _("Password reset successfully")})
