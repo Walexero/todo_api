@@ -10,7 +10,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render, get_object_or_404
 from todo.serializers import TodoSerializer, TaskSerializer
 from core.models import Todo, Task
-from .mixins import BatchUpdateRouteMixin
+from .mixins import (
+    BatchRouteMixin,
+    BatchUpdateOrderingRouteMixin,
+    BatchUpdateAllRouteMixin,
+    BatchCreateRouteMixin,
+    BatchDeleteRouteMixin,
+)
 
 # Create your views here.
 
@@ -32,7 +38,14 @@ from .mixins import BatchUpdateRouteMixin
     ),
     batch_update=extend_schema(description="Update Specified Todo Ordering"),
 )
-class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
+class TodoViewSet(
+    BatchRouteMixin,
+    BatchCreateRouteMixin,
+    # BatchUpdateAllRouteMixin,
+    BatchUpdateOrderingRouteMixin,
+    # BatchDeleteRouteMixin,
+    viewsets.ModelViewSet,
+):
     """todo-
     Views to manage Todo APIs. The ordering field signifies the order in which the response is to be ordered in the UI
     """
@@ -78,7 +91,14 @@ class TodoViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
     ),
     batch_update=extend_schema(description="Update Specified Task Ordering"),
 )
-class TaskViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
+class TaskViewSet(
+    BatchRouteMixin,
+    BatchCreateRouteMixin,
+    # BatchUpdateAllRouteMixin,
+    BatchUpdateOrderingRouteMixin,
+    # BatchDeleteRouteMixin,
+    viewsets.ModelViewSet,
+):
     """
     View for managing Tasks related to Todo. . The ordering field signifies the order in which the response is to be ordered in the UI
     """
@@ -90,6 +110,7 @@ class TaskViewSet(BatchUpdateRouteMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         todo = get_object_or_404(Todo, id=self.request.data.get("todo_id"))
+        # TODO: Might have to add check to preevent save on batch operation
         return serializer.save(todo=todo)
 
     def get_queryset(self, ids=None):

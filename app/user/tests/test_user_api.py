@@ -314,6 +314,27 @@ class PrivateUserApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
+    def test_change_password_to_current_password_fails(self):
+        """
+        Test that when a password is changed to the current password it
+        fails
+        """
+        self.payload["email"] = "changepassword@example.com"
+        user = create_user(**self.payload)
+        user.is_active = True
+        user.save()
+        self.client.force_authenticate(user)
+
+        payload = {
+            "password": self.payload["password"],
+            "password2": self.payload["password"],
+            "old_password": self.payload["password"],
+        }
+
+        res = self.client.put(CHANGE_PASSWORD_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_update_user_info_with_bad_credential(self):
         """
         Test that the user info cannot be updated with bad credentials

@@ -10,7 +10,9 @@ from django.urls import reverse
 # from core import models
 
 TASK_URL = reverse("todo:task-list")
-TASK_BATCH_UPDATE_URL = reverse("todo:task-batch_update")
+TASK_BATCH_UPDATE_ORDERING_URL = reverse("todo:task-batch_update_ordering")
+
+# TASK_BATCH_UPDATE_ORDERING_URL = reverse("todo:task-batch_update")
 
 # CREATE_TASK_URL = reverse("todo:task-create")
 
@@ -215,7 +217,7 @@ class PrivateTaskApiTest(TestCase):
                 {"id": task3.id, "ordering": task2.ordering},
             ]
         }
-        res = self.client.patch(TASK_BATCH_UPDATE_URL, payload, format="json")
+        res = self.client.patch(TASK_BATCH_UPDATE_ORDERING_URL, payload, format="json")
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 

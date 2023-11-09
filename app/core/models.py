@@ -13,6 +13,7 @@ from django.contrib.auth.models import (
 
 from django.conf import settings
 from django.utils import timezone
+from datetime import datetime
 
 
 # Create your models here.
@@ -71,7 +72,9 @@ class Todo(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=255, null=True, blank=True)
-    last_added = models.DateTimeField(auto_now=True, null=True, blank=True)
+    last_added = models.DateTimeField(
+        default=timezone.now, null=True, blank=True
+    )  # auto_now=True
     completed = models.BooleanField(default=False)
     ordering = models.IntegerField(null=True, blank=True)
 
@@ -85,11 +88,17 @@ class Todo(models.Model):
         user_todos_count = user_todos.count()
         if user_todos_count == 1:
             self.ordering = 1
-            self.save()
+            # self.save()
         elif user_todos_count > 1:
             highest_ordering = user_todos.aggregate(Max("ordering"))
             self.ordering = highest_ordering["ordering__max"] + 1
-            self.save()
+            # self.save()
+
+    def save(self, *args, **kwargs):
+        # if not self.last_added:
+        self.update_last_added
+        self.increment_ordering
+        super(Todo, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.title
@@ -111,11 +120,15 @@ class Task(models.Model):
         todo_tasks_count = todo_tasks.count()
         if todo_tasks_count == 1:
             self.ordering = 1
-            self.save()
+            # self.save()
         elif todo_tasks_count > 1:
             highest_ordering = todo_tasks.aggregate(Max("ordering"))
             self.ordering = highest_ordering["ordering__max"] + 1
-            self.save()
+            # self.save()
+
+    def save(self, *args, **kwargs):
+        self.increment_ordering
+        super(Task, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.task

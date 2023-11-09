@@ -16,7 +16,6 @@ from dj_rest_auth.serializers import (
     PasswordResetConfirmSerializer,
 )
 
-
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User Object
@@ -136,6 +135,11 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user = self.context["request"].user
+
+        if user.check_password(validated_data["password"]):
+            raise serializers.ValidationError(
+                _("New password cannot be Old Password")
+            )
 
         if user.pk != instance.pk:
             raise serializers.ValidationError(
