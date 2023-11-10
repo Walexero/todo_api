@@ -13,7 +13,7 @@ from core.models import Todo, Task
 from .mixins import (
     BatchRouteMixin,
     BatchUpdateOrderingRouteMixin,
-    BatchUpdateAllRouteMixin,
+    BatchUpdateRouteMixin,
     BatchCreateRouteMixin,
     BatchDeleteRouteMixin,
 )
@@ -41,12 +41,12 @@ from .mixins import (
 class TodoViewSet(
     BatchRouteMixin,
     BatchCreateRouteMixin,
-    # BatchUpdateAllRouteMixin,
+    BatchUpdateRouteMixin,
     BatchUpdateOrderingRouteMixin,
-    # BatchDeleteRouteMixin,
+    BatchDeleteRouteMixin,
     viewsets.ModelViewSet,
 ):
-    """todo-
+    """
     Views to manage Todo APIs. The ordering field signifies the order in which the response is to be ordered in the UI
     """
 
@@ -68,6 +68,15 @@ class TodoViewSet(
                 return self.queryset.filter(user=self.request.user, id__in=ids)
 
             return self.queryset.filter(user=self.request.user).order_by("-id")
+
+    def perform_destory(self, serializer):
+        """
+        Delete a todo
+        """
+        serializer.destroy()
+
+    def view_name(self):
+        return "todo"
 
 
 @extend_schema_view(
@@ -94,9 +103,9 @@ class TodoViewSet(
 class TaskViewSet(
     BatchRouteMixin,
     BatchCreateRouteMixin,
-    # BatchUpdateAllRouteMixin,
+    BatchUpdateRouteMixin,
     BatchUpdateOrderingRouteMixin,
-    # BatchDeleteRouteMixin,
+    BatchDeleteRouteMixin,
     viewsets.ModelViewSet,
 ):
     """
@@ -109,8 +118,12 @@ class TaskViewSet(
     authentication_classes = [TokenAuthentication]
 
     def perform_create(self, serializer):
+        action_type = self.action
+
+        if action_type == "batch_create":
+            return serializer.save()
+
         todo = get_object_or_404(Todo, id=self.request.data.get("todo_id"))
-        # TODO: Might have to add check to preevent save on batch operation
         return serializer.save(todo=todo)
 
     def get_queryset(self, ids=None):
@@ -124,3 +137,6 @@ class TaskViewSet(
                 ).order_by("id")
 
             return self.queryset.filter(todo__user=self.request.user).order_by("id")
+
+    def view_name(self):
+        return "task"

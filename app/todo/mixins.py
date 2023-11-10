@@ -10,7 +10,6 @@ class BatchSerializerMixin:
     """
 
     def to_internal_value(self, data):
-        print("the data", data)
         # ret = super().to_internal_value(data)
         if not isinstance(data, list):
             raise ValidationError("Invalid Data Supplied,a List is expected")
@@ -32,7 +31,7 @@ class BatchUpdateOrderingSerializerMixin(BatchSerializerMixin):
         return test
 
 
-class BatchUpdateAllSerializerMixin(BatchSerializerMixin):
+class BatchUpdateSerializerMixin(BatchSerializerMixin):
     """
     Mixin to be used with updating the properties of a model
     to update
@@ -40,7 +39,7 @@ class BatchUpdateAllSerializerMixin(BatchSerializerMixin):
 
     def passes_test(self):
         test = self.context["request"].method == "PATCH"
-        test &= self.context.get("batch_update_all", False)
+        test &= self.context.get("batch_update", False)
         return test
 
 
@@ -91,34 +90,69 @@ class BatchRouteMixin:
             "batch_update_ordering",
             "batch_create",
             "batch_delete",
-            "batch_update_all",
+            "batch_update",
         ]:  # == self.action_name:
             # print("the action name", self.action_name)
             context[self.action] = True
         return context
 
-    # def validate_ids(self, data, field="id", unique=True):
-    #     if isinstance(data, list):
-    #         id_list = [int(i["id"]) for i in data]
+    def validate_ids(self, data, field="id", unique=True, return_unique=False):
+        if isinstance(data, list):
+            id_list = [int(i[field]) for i in data]
 
-    #         if unique and len(id_list) != len(set(id_list)):
-    #             raise ValidationError(
-    #                 "Cannot make multiple request operation on a single instance"
-    #             )
+            if unique and len(id_list) != len(set(id_list)):
+                raise ValidationError(
+                    "Cannot make multiple request operation on a single instance"
+                )
 
-    #         return id_list
+            if return_unique:
+                return list(set(id_list))
 
-    #     return [data]
+            return id_list
 
-    # def validate_orderings(self, data, field="ordering", unique=True):
-    #     if isinstance(data, list):
-    #         ordering_list = [int(i["ordering"]) for i in data]
+        return [data]
 
-    #         if unique and len(ordering_list) != len(set(ordering_list)):
-    #             raise ValidationError(
-    #                 "Cannot assign same ordering to multiple instance"
-    #             )
-    #         return ordering_list
+    def validate_delete_ids(self, data):
+        if isinstance(data, list):
+            for i in data:
+                if not isinstance(i, int):
+                    raise ValidationError("Int is required as field value")
+
+            return list(set(data))
+        return [data]
+
+    def validate_orderings(self, data, field="ordering", unique=True):
+        if isinstance(data, list):
+            ordering_list = [int(i["ordering"]) for i in data]
+
+            if unique and len(ordering_list) != len(set(ordering_list)):
+                raise ValidationError(
+                    "Cannot assign same ordering to multiple instance"
+                )
+            return ordering_list
+        return [data]
+
+    def validate_titles(self, data, field="title"):
+        if isinstance(data, list):
+            for i in data:
+                if title := i.get("title", None):
+                    if not isinstance(title, str):
+                        raise ValidationError(
+                            "Only strings are allowed as title value "
+                        )
+                pass
+        return [data]
+
+    def validate_completed(self, data, field="completed"):
+        if isinstance(data, list):
+            for i in data:
+                if completed := i.get("completed", None):
+                    if not isinstance(completed, bool):
+                        raise ValidationError(
+                            "Only bools are allowed as completed value "
+                        )
+                pass
+        return [data]
 
 
 class BatchUpdateOrderingRouteMixin:  # (BatchRouteMixin):
@@ -145,42 +179,17 @@ class BatchUpdateOrderingRouteMixin:  # (BatchRouteMixin):
         self.perform_update(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def validate_ids(self, data, field="id", unique=True):
-        if isinstance(data, list):
-            id_list = [int(i["id"]) for i in data]
 
-            if unique and len(id_list) != len(set(id_list)):
-                raise ValidationError(
-                    "Cannot make multiple request operation on a single instance"
-                )
-
-            return id_list
-
-        return [data]
-
-    def validate_orderings(self, data, field="ordering", unique=True):
-        if isinstance(data, list):
-            ordering_list = [int(i["ordering"]) for i in data]
-
-            if unique and len(ordering_list) != len(set(ordering_list)):
-                raise ValidationError(
-                    "Cannot assign same ordering to multiple instance"
-                )
-            return ordering_list
-
-        return [data]
-
-
-class BatchUpdateAllRouteMixin(BatchRouteMixin):
+class BatchUpdateRouteMixin:
     """
-    Mixin that adds a  `batch_update_all` API route to a viewset. To be used with BatchUpdateAllSerializerMixin
+    Mixin that adds a  `batch_update` API route to a viewset. To be used with BatchUpdateSerializerMixin
     """
 
-    action_name = "batch_update_all"
-
-    @action(detail=False, methods=["PATCH"], url_name="batch_update_all")
-    def batch_update_all(self, request, *args, **kwargs):
+    @action(detail=False, methods=["PATCH"], url_name="batch_update")
+    def batch_update(self, request, *args, **kwargs):
         ids = self.validate_ids(request.data["update_list"])
+        self.validate_titles(request.data["update_list"])
+        self.validate_completed(request.data["update_list"])
 
         queryset = self.filter_queryset(self.get_queryset(ids=ids))
 
@@ -189,7 +198,7 @@ class BatchUpdateAllRouteMixin(BatchRouteMixin):
             data=request.data["update_list"],
             partial=True,
             many=True,
-            type=self.action_name,
+            type=self.action,
         )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
@@ -201,18 +210,16 @@ class BatchCreateRouteMixin:  # (BatchRouteMixin):
     Mixin that adds a  `batch_create` API route to a viewset
     """
 
-    # action_name = "batch_create"
-
     @action(detail=False, methods=["POST"], url_name="batch_create")
     def batch_create(self, request, *args, **kwargs):
-        # print("in the batch_create", self.action_type)
-        todo = self.get_object()
+        queryset = self.get_object()
+
         serializer = self.get_serializer(
-            todo,
+            queryset,
             data=request.data["create_list"],
             many=True,
             type=self.action,
-            user=request.user,
+            view_name=self.view_name(),
         )
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -220,25 +227,19 @@ class BatchCreateRouteMixin:  # (BatchRouteMixin):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class BatchDeleteRouteMixin(BatchRouteMixin):
+class BatchDeleteRouteMixin:
     """
     Mixin that adds a  `batch_delete` API route to a viewset
     """
 
-    action_name = "batch_delete"
-
-    @action(detail=False, methods=["PATCH"], url_name="batch_delete")
+    @action(detail=False, methods=["DELETE"], url_name="batch_delete")
     def batch_delete(self, request, *args, **kwargs):
-        ids = self.validate_ids(request.data["delete_list"])
+        ids = self.validate_delete_ids(request.data["delete_list"])
+        print("the deel ids", ids)
 
         queryset = self.filter_queryset(self.get_queryset(ids=ids))
-
-        serializer = self.get_serializer(
-            queryset,
-            data=request.data["delete_list"],
-            many=True,
-            type=self.action_name,
+        queryset.delete()
+        return Response(
+            self.serializer_class(queryset, many=True).data,
+            status=status.HTTP_204_NO_CONTENT,
         )
-        serializer.is_valid(raise_exception=True)
-        self.perform_delete(serializer)
-        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)

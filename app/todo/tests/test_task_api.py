@@ -6,15 +6,17 @@ from core.models import Todo, Task
 from todo.serializers import TaskSerializer
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
+from rest_framework.serializers import DateTimeField
+from datetime import timedelta
 
 # from core import models
 
 TASK_URL = reverse("todo:task-list")
 TASK_BATCH_UPDATE_ORDERING_URL = reverse("todo:task-batch_update_ordering")
-
-# TASK_BATCH_UPDATE_ORDERING_URL = reverse("todo:task-batch_update")
-
-# CREATE_TASK_URL = reverse("todo:task-create")
+TASK_BATCH_UPDATE = reverse("todo:task-batch_update")
+TASK_BATCH_CREATE_URL = reverse("todo:task-batch_create")
+TASK_BATCH_DELETE_URL = reverse("todo:task-batch_delete")
 
 
 def detail_url(task_id):
@@ -133,6 +135,72 @@ class PrivateTaskApiTest(TestCase):
 
         self.assertEqual(res2.data["ordering"], tasks_ordering_max["ordering__max"])
 
+    def test_batch_create_task_success(self):
+        """
+        Test that a batch create of a task results in task creation
+        """
+        todo2 = create_todo(self.user)
+
+        payload = {
+            "create_list": [
+                self.payload,
+                {"task": "klsfjldsaf", "todo_id": self.todo.id, "completed": True},
+                {
+                    "task": "weqfjdlkfjldkfadf",
+                    "todo_id": todo2.id,
+                    "completed": False,
+                },
+                {"task": "vifoeinff", "todo_id": todo2.id, "completed": True},
+            ]
+        }
+
+        res = self.client.post(TASK_BATCH_CREATE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        tasks = Task.objects.filter(todo__user=self.user)
+        serializer = TaskSerializer(tasks, many=True)
+
+        # print("serilaizer data", serializer.data)
+        self.assertEqual(serializer.data, res.data)
+
+    def test_task_batch_create_task_success_updates_todo_last_added(self):
+        """
+        Test creating batch tasks also updates the todo last added field
+        """
+        todo2 = create_todo(self.user)
+        # time_value = t
+        current_time = DateTimeField().to_representation(timezone.now().replace(day=3))
+
+        payload = {
+            "create_list": [
+                self.payload,
+                {
+                    "task": "klsfjldsaf",
+                    "todo_id": self.todo.id,
+                    "completed": True,
+                    "todo_last_added": current_time,
+                },
+                {
+                    "task": "weqfjdlkfjldkfadf",
+                    "todo_id": todo2.id,
+                    "completed": False,
+                    "todo_last_added": timezone.now(),
+                },
+                {
+                    "task": "vifoeinff",
+                    "todo_id": todo2.id,
+                    "completed": True,
+                    "todo_last_added": timezone.now(),
+                },
+            ]
+        }
+
+        res = self.client.post(TASK_BATCH_CREATE_URL, payload, format="json")
+        self.todo.refresh_from_db()
+        todo_last_added = DateTimeField().to_representation(self.todo.last_added)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(todo_last_added, current_time)
+
     def test_get_tasks(self):
         """
         Tests that the task was retrieved for authenticated users
@@ -227,6 +295,48 @@ class PrivateTaskApiTest(TestCase):
 
         self.assertEqual(serializer.data, res.data)
 
+    def test_batch_task_update_succeeds(self):
+        """
+        Test that the batch update of a task succeeds
+        """
+        task1 = create_task(self.todo, "ksdlfjsldf")
+        # task1.increment_ordering/
+        task2 = create_task(self.todo, "ksldklsdf")
+        # task2.increment_ordering
+        task3 = create_task(self.todo, "kdfjoviaisd")
+        # task3.increment_ordering
+
+        payload = {
+            "update_list": [
+                {
+                    "id": task1.id,
+                    "task": "kdvsniosdnf",
+                    "completed": False,
+                    "todo_last_added": timezone.now().replace(day=3, microsecond=0),
+                },
+                {
+                    "id": task2.id,
+                    "task": "kdfjsdfjvsf",
+                    "completed": True,
+                    "todo_last_added": timezone.now().replace(day=3, microsecond=0),
+                },
+                {
+                    "id": task3.id,
+                    "task": "kvosdif dsjfksldfsfsdfsfsdf",
+                    "todo_last_added": timezone.now().replace(day=3, microsecond=0),
+                },
+            ]
+        }
+        res = self.client.patch(TASK_BATCH_UPDATE, payload, format="json")
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        tasks = Task.objects.filter(todo=self.todo).order_by("id")
+
+        serializer = TaskSerializer(tasks, many=True)
+
+        self.assertQuerysetEqual(serializer.data, res.data)
+
     def test_delete_task_without_other_task(self):
         """
         Test deleting a task when no other users task exist
@@ -274,3 +384,36 @@ class PrivateTaskApiTest(TestCase):
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_task_batch_delete_with_invalid_id_returns_success(self):
+        """
+        Test that a batch delete with an invalid id does not result in other delete operations from being carried out
+        """
+        task1 = create_task(self.todo, "dslkflasjdffda")
+        task2 = create_task(self.todo, "ksdfjlsdafsfaf")
+        task3 = create_task(self.todo, "kldjvoasfdasf")
+
+        payload = {"delete_list": [task1.id, task2.id, 839283233]}
+
+        res = self.client.delete(TASK_BATCH_DELETE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        tasks = Task.objects.filter(todo=self.todo)
+        self.assertEqual(tasks.count(), 1)
+
+    def test_task_batch_delete_success(self):
+        """
+        Test that a batch delete is completed successfully
+        """
+        task1 = create_task(self.todo, "dslkflasjdffda")
+        task2 = create_task(self.todo, "ksdfjlsdafsfaf")
+        task3 = create_task(self.todo, "kldjvoasfdasf")
+
+        payload = {"delete_list": [task1.id, task2.id, task3.id]}
+
+        res = self.client.delete(TASK_BATCH_DELETE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(res.data, [])
+
+        tasks = Task.objects.filter(todo=self.todo)
+        self.assertEqual(tasks.count(), 0)

@@ -12,8 +12,8 @@ from datetime import timedelta
 
 TODO_URL = reverse("todo:todo-list")
 TODO_BATCH_UPDATE_ORDERING_URL = reverse("todo:todo-batch_update_ordering")
-# TODO_BATCH_UPDATE_ALL_URL = reverse("todo:todo-batch_update_all")
-# TODO_BATCH_DELETE_URL = reverse("todo:todo-batch_delete")
+TODO_BATCH_UPDATE_URL = reverse("todo:todo-batch_update")
+TODO_BATCH_DELETE_URL = reverse("todo:todo-batch_delete")
 TODO_BATCH_CREATE_URL = reverse("todo:todo-batch_create")
 
 
@@ -367,24 +367,41 @@ class PrivateTodoApiTest(TestCase):
         user_todos = models.Todo.objects.filter(user=self.user)
         self.assertEqual(user_todos.count(), 1)
 
-    # def test_batch_delete_with_non_existent_id_does_not_break_request(self):
-    #     """
-    #     Test that making a batch delete with non existent id does not stop the request from completing
-    #     """
-    #     self.user = create_user()
-    #     self.client.force_authenticate(self.user)
-    #     todo = create_todo(self.user)
-    #     todo2 = create_todo(self.user)
-    #     todo3 = create_todo(self.user)
+    def test_batch_delete_with_non_existent_id_does_not_break_request(self):
+        """
+        Test that making a batch delete with non existent id does not stop the request from completing
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+        todo = create_todo(self.user)
+        todo2 = create_todo(self.user)
+        todo3 = create_todo(self.user)
 
-    #     payload = {"delete_list": [todo.id, todo2.id, 32423]}
+        payload = {"delete_list": [todo.id, todo2.id, 32423]}
 
-    #     # todo.refresh_from_db()
-    #     res = self.client.delete(TODO_BATCH_DELETE_URL, payload, format="json")
+        res = self.client.delete(TODO_BATCH_DELETE_URL, payload, format="json")
 
-    #     self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-    #     user_todos = models.Todo.objects.filter(user=self.user)
-    #     self.assertEqual(user_todos.count(), 1)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        user_todos = models.Todo.objects.filter(user=self.user)
+        self.assertEqual(user_todos.count(), 1)
+
+    def test_batch_delete_success(self):
+        """
+        Test that the items are deleted successfully
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+        todo = create_todo(self.user)
+        todo2 = create_todo(self.user)
+        todo3 = create_todo(self.user)
+        #
+        payload = {"delete_list": [todo.id, todo2.id, todo3.id]}
+
+        res = self.client.delete(TODO_BATCH_DELETE_URL, payload, format="json")
+        #
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        user_todos = models.Todo.objects.filter(user=self.user)
+        self.assertEqual(user_todos.count(), 0)
 
     # todo: test partial update
     def test_partial_update_of_todo(self):
@@ -432,70 +449,66 @@ class PrivateTodoApiTest(TestCase):
         serializer = TodoSerializer(todos, many=True)
         self.assertEqual(res.data, serializer.data)
 
-    # def test_partial_update_of_todos_instance_using_batch_update_all_fails_with_bad_request_data(
-    #     self,
-    # ):
-    #     """
-    #     Test that making an update on the todo instance using the batch update all fails if the request payload is invalid
-    #     """
-    #     user = create_user(email="newuser@example.com")
-    #     self.client.force_authenticate(user)
-    #     todo1 = create_todo(user)
-    #     todo1.increment_ordering
-    #     todo2 = create_todo(user)
-    #     todo2.increment_ordering
-    #     todo3 = create_todo(user)
-    #     todo3.increment_ordering
+    def test_partial_update_of_todos_instance_using_batch_update_fails_with_bad_request_data(
+        self,
+    ):
+        """
+        Test that making an update on the todo instance using the batch update fails if the request payload is invalid
+        """
+        user = create_user(email="newuser@example.com")
+        self.client.force_authenticate(user)
+        todo1 = create_todo(user)
+        todo1.increment_ordering
+        todo2 = create_todo(user)
+        todo2.increment_ordering
+        todo3 = create_todo(user)
+        todo3.increment_ordering
 
-    #     payload = {
-    #         "update_list": [
-    #             {"id": todo1.id, "title": "Updating todo title 1"},
-    #             {
-    #                 "id": todo2.id,
-    #                 "title": "Updating todo title 2",
-    #                 "tasks": "dkslfjskdjfsd",
-    #             },
-    #             {"id": todo3.id, "completed": "djflkdjflsjdf"},
-    #         ]
-    #     }
-    #     res = self.client.patch(TODO_BATCH_UPDATE_ALL_URL, payload, format="json")
-    #     self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        payload = {
+            "update_list": [
+                {"id": todo1.id, "title": "Updating todo title 1"},
+                {
+                    "id": todo2.id,
+                    "title": "Updating todo title 2",
+                    "tasks": "dkslfjskdjfsd",
+                },
+                {"id": todo3.id, "completed": "djflkdjflsjdf"},
+            ]
+        }
+        res = self.client.patch(TODO_BATCH_UPDATE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-    # def test_partial_update_of_todos_instance_using_batch_update_all_succeeds(self):
-    #     """
-    #     Test that making an update on the todo instance using the batch update works
-    #     """
-    #     user = create_user(email="newuser@example.com")
-    #     self.client.force_authenticate(user)
-    #     todo1 = create_todo(user)
-    #     todo1.increment_ordering
-    #     todo2 = create_todo(user)
-    #     todo2.increment_ordering
-    #     todo3 = create_todo(user)
-    #     todo3.increment_ordering
+    def test_partial_update_of_todos_instance_using_batch_update_succeeds(self):
+        """
+        Test that making an update on the todo instance using the batch update works
+        """
+        user = create_user(email="newuser@example.com")
+        self.client.force_authenticate(user)
+        todo1 = create_todo(user)
+        todo1.increment_ordering
+        todo2 = create_todo(user)
+        todo2.increment_ordering
+        todo3 = create_todo(user)
+        todo3.increment_ordering
 
-    #     payload = {
-    #         "update_list": [
-    #             {"id": todo1.id, "title": "Updating todo title 1"},
-    #             {
-    #                 "id": todo2.id,
-    #                 "title": "Updating todo title 2",
-    #                 "completed": False,
-    #                 "tasks": [
-    #                     {"task": "dkfjlskjdflsjdlfasf", "completed": False},
-    #                     {"task": "kvdkjfoisdjfsdfsf", "completed": True},
-    #                 ],
-    #             },
-    #             {"id": todo3.id, "completed": True},
-    #         ]
-    #     }
-    #     res = self.client.patch(TODO_BATCH_UPDATE_ALL_URL, payload, format="json")
-    #     self.assertEqual(res.status_code, status.HTTP_200_OK)
+        payload = {
+            "update_list": [
+                {"id": todo1.id, "title": "Updating todo title 1"},
+                {
+                    "id": todo2.id,
+                    "title": "Updating todo title 2",
+                    "completed": False,
+                },
+                {"id": todo3.id, "completed": True},
+            ]
+        }
+        res = self.client.patch(TODO_BATCH_UPDATE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
 
-    #     todos = models.Todo.objects.filter(user=user)
+        todos = models.Todo.objects.filter(user=user).order_by("id")
 
-    #     serializer = TodoSerializer(todos, many=True)
-    #     self.assertEqual(res.data, serializer.data)
+        serializer = TodoSerializer(todos, many=True)
+        self.assertEqual(res.data, serializer.data)
 
     def test_partial_update_of_user_todo_by_another_user(self):
         """

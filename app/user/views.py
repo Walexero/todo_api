@@ -56,7 +56,6 @@ class CreateTokenView(ObtainAuthToken):
             current_time = timezone.now()
             if not created and token.created < (current_time - timedelta(3)):
                 token.delete()
-                print(serializer)
                 token = Token.objects.create(
                     user=serializer.validated_data["user"]
                 )  # serializer.object["user"]
