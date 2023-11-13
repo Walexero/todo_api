@@ -79,6 +79,7 @@ class BatchUpdateSerializer(BatchUpdateSerializerMixin, serializers.ListSerializ
         task_result, fields = self.update_obj_instance(instance, validated_data)
         todo_list = []
         for i, task in enumerate(task_result):
+            print("the todo last added", todo_last_added[i])
             if todo_last_added[i]:
                 task.todo.last_added = todo_last_added[i]
                 todo_list.append(task.todo)
@@ -140,8 +141,9 @@ class BatchCreateSerializer(BatchCreateSerializerMixin, serializers.ListSerializ
                     task_obj["todo_id"] = todo_list[i].id
                     bulk_task.append(task_obj)
             else:
-                task[0]["todo_id"] = todo_list[i].id
-                bulk_task.append(task[0])
+                if len(task) > 0:
+                    task[0]["todo_id"] = todo_list[i].id
+                    bulk_task.append(task[0])
 
         task_result = [Task(**attrs) for attrs in bulk_task]
         self.increment_obj_ordering_task(task_result)
@@ -198,6 +200,8 @@ class BatchCreateSerializer(BatchCreateSerializerMixin, serializers.ListSerializ
     def create(self, validated_data):
         view_name = self.context["view"].view_name()
 
+        print("the validated batch create data", validated_data)
+
         if view_name == "todo":
             return self.todo_view_create(validated_data)
 
@@ -209,12 +213,18 @@ class BatchCreateSerializer(BatchCreateSerializerMixin, serializers.ListSerializ
         read_only_fields = ["id", "ordering"]
 
 
+class BatchDeleteSerializer(BatchDeleteSerializerMixin, serializers.ListSerializer):
+    class Meta:
+        fields = ["delete_list"]
+
+
 class SerializerGetListSerializerClassInitMixin:
     """
     Mixin to allow setting the list_serializer_class for a serializer
     """
 
     list_serializer_type_classes = {
+        "batch_delete": BatchDeleteSerializer,
         "batch_update": BatchUpdateSerializer,
         "batch_update_ordering": BatchOrderingUpdateSerializer,
         "batch_create": BatchCreateSerializer,
@@ -352,3 +362,5 @@ class TodoSerializer(
         model = Todo
         fields = ["id", "title", "tasks", "last_added", "completed", "ordering"]
         read_only_fields = ["id", "last_added", "ordering"]
+
+        # read_only_fields = ["id"]

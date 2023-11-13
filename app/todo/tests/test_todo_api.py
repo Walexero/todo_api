@@ -197,6 +197,44 @@ class PrivateTodoApiTest(TestCase):
 
         self.assertEqual(serializer.data, res.data)
 
+    def test_batch_create_with_empty_task_creates_successfully(self):
+        """
+        Test that creating a batch create todo with empty task does not cause a crash in the system
+        """
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+        payload = {
+            "create_list": [
+                {
+                    "title": "vdfafsdfsf",
+                    "completed": False,
+                    "tasks": [],
+                },
+                {
+                    "title": "kvnidoifadfafd",
+                    "completed": True,
+                    "tasks": [{"task": "kd", "completed": True}],
+                },
+                {
+                    "title": "vkldskf dslf;sadf",
+                    "completed": True,
+                    "tasks": [
+                        {"task": "vkdljafasd dkfjasldfsf", "completed": True},
+                        {"task": "eiofd fkjdfsakdfsf", "completed": False},
+                    ],
+                },
+            ]
+        }
+
+        res = self.client.post(TODO_BATCH_CREATE_URL, payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        todos = models.Todo.objects.filter(user=self.user)
+        serializer = TodoSerializer(todos, many=True)
+
+        self.assertEqual(serializer.data, res.data)
+
     def test_batch_create_sets_last_added_from_request(self):
         """
         Test that the last added field added in the request is set on th created instance

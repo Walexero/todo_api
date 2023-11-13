@@ -214,6 +214,8 @@ class BatchCreateRouteMixin:  # (BatchRouteMixin):
     def batch_create(self, request, *args, **kwargs):
         queryset = self.get_object()
 
+        print("the req create", request.data["create_list"])
+
         serializer = self.get_serializer(
             queryset,
             data=request.data["create_list"],

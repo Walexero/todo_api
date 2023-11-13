@@ -2,8 +2,15 @@
 Views for Todo
 """
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import viewsets, mixins, status
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter,
+    OpenApiTypes,
+    OpenApiResponse,
+    inline_serializer,
+)
+from rest_framework import viewsets, mixins, status, serializers
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +24,8 @@ from .mixins import (
     BatchCreateRouteMixin,
     BatchDeleteRouteMixin,
 )
+
+from .serializers import BatchDeleteSerializerMixin, BatchDeleteSerializer
 
 # Create your views here.
 
@@ -37,6 +46,16 @@ from .mixins import (
         description="Retrieves a specified todo based on the todo ID"
     ),
     batch_update=extend_schema(description="Update Specified Todo Ordering"),
+    batch_delete=extend_schema(
+        description="Delete a list of items",
+        request=inline_serializer(
+            name="Request Body", fields={"delete_list": serializers.ListField()}
+        ),
+        responses={
+            204: OpenApiResponse(description="No response body"),
+            400: OpenApiResponse(description="Validation error"),
+        },
+    ),
 )
 class TodoViewSet(
     BatchRouteMixin,

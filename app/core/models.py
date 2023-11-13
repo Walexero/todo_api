@@ -71,7 +71,7 @@ class Todo(models.Model):
     """
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255, null=True, blank=True)
+    title = models.CharField(default="", max_length=255, null=True, blank=True)
     last_added = models.DateTimeField(
         default=timezone.now, null=True, blank=True
     )  # auto_now=True
@@ -97,7 +97,8 @@ class Todo(models.Model):
     def save(self, *args, **kwargs):
         # if not self.last_added:
         self.update_last_added
-        self.increment_ordering
+        if not self.ordering:
+            self.increment_ordering
         super(Todo, self).save(*args, **kwargs)
 
     def __str__(self):
