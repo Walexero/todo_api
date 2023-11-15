@@ -43,6 +43,3 @@ class UserAdmin(BaseUserAdmin):
 
 
 admin.site.register(models.User, UserAdmin)
-admin.site.site_url = "Todo App"#os.environ.get("APP_DOMAIN", "http://localhost:8880")
-admin.site.site_header = "Todo App"
-admin.site.site_title = "Todo App"

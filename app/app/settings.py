@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "core",
     "rest_framework",
     "rest_framework.authtoken",
@@ -75,7 +76,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.contrib.sites.middleware.CurrentSiteMiddleware",
 ]
+
+SITE_ID = 1
 
 ROOT_URLCONF = "app.urls"
 
@@ -112,23 +116,16 @@ DATABASES = {
     }
 }
 
-#Email
+# Email
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST="smtp.gmail.com"
-EMAIL_PORT=465
-EMAIL_HOST_USER="appistodoapp@gmail.com"
-EMAIL_HOST_PASSWORD="wwhm qvey xoky kzwv"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_HOST_USER = "appistodoapp@gmail.com"
+EMAIL_HOST_PASSWORD = "wwhm qvey xoky kzwv"
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-# EMAIL_HOST = os.environ.get("EMAIL_HOST")
-# EMAIL_PORT = int(os.environ.get("EMAIL_PORT"))
-# EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-
-# EMAIL_FILE_PATH = os.path.join(BASE_DIR, "emails")
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -182,7 +179,12 @@ REST_FRAMEWORK = {
         "user.authentication.ExpiringTokenAuthentication",
     ),
     "PASSWORD_RESET_SERIALIZER": "user.serializers.ResetPasswordSerializer",
-    "PASSWORD_RESET_CONFIRM_SERIALIZER": "dj_rest_auth.serializers.PasswordResetConfirmSerializer",
+    "PASSWORD_RESET_CONFIRM_SERIALIZER": "user.serializers.ResetPasswordConfirmSerializer",
+}
+
+REST_AUTH_SERIALIZERS = {
+    "PASSWORD_RESET_SERIALIZER": "user.serializers.ResetPasswordSerializer",
+    "PASSWORD_RESET_CONFIRM_SERIALIZER": "user.serializers.ResetPasswordConfirmSerializer",
 }
 
 SPECTACULAR_SETTINGS = {

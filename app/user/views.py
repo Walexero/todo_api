@@ -26,7 +26,8 @@ from django.utils.translation import gettext as _
 from django.shortcuts import render
 from rest_framework.response import Response
 from datetime import timedelta
-from dj_rest_auth.views import PasswordResetConfirmView
+from dj_rest_auth.views import PasswordResetConfirmView, PasswordResetView
+from django.contrib.sites.models import Site
 
 
 # Create your views here.
@@ -121,7 +122,13 @@ class UpdateInfoView(generics.UpdateAPIView):
         return self.request.user
 
 
-class ResetUserPasswordView(PasswordResetConfirmView):
+class ResetUserPasswordView(PasswordResetView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+
+class ConfirmResetUserPasswordView(PasswordResetConfirmView):
     """
     View for resetting user's password
     """

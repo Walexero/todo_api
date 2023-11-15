@@ -16,6 +16,7 @@ from dj_rest_auth.serializers import (
     PasswordResetConfirmSerializer,
 )
 
+
 class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for the User Object
@@ -31,19 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
         Create and return a user with encrypted password
         """
         return get_user_model().objects.create_user(**validated_data)
-
-    # def update(self, instance, validated_data):
-    #     """
-    #     Update the User Instance and return it
-    #     """
-    #     password = validated_data.pop("password", None)
-    #     user = super().update(instance, validated_data)
-
-    #     if password:
-    #         user.set_password(password)
-    #         user.save()
-
-    #     return user
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -137,9 +125,7 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
 
         if user.check_password(validated_data["password"]):
-            raise serializers.ValidationError(
-                _("New password cannot be Old Password")
-            )
+            raise serializers.ValidationError(_("New password cannot be Old Password"))
 
         if user.pk != instance.pk:
             raise serializers.ValidationError(
@@ -191,7 +177,9 @@ class ResetPasswordSerializer(PasswordResetSerializer):
     """
 
     def get_email_options(self):
-        return {"html_email_template_name": "registration/password_reset_email.html"}
+        return {
+            "html_email_template_name": "registration/password_reset_email.html",
+        }
 
 
 class ResetPasswordConfirmSerializer(PasswordResetConfirmSerializer):

@@ -149,8 +149,18 @@ class PrivateTaskApiTest(TestCase):
                     "task": "weqfjdlkfjldkfadf",
                     "todo_id": todo2.id,
                     "completed": False,
+                    "todo_last_added": DateTimeField().to_representation(
+                        timezone.now().replace(second=0, day=3, hour=0, microsecond=0)
+                    ),
                 },
-                {"task": "vifoeinff", "todo_id": todo2.id, "completed": True},
+                {
+                    "task": "vifoeinff",
+                    "todo_id": todo2.id,
+                    "completed": True,
+                    "todo_last_added": DateTimeField().to_representation(
+                        timezone.now().replace(second=0, day=3, hour=0, microsecond=0)
+                    ),
+                },
             ]
         }
 
@@ -160,7 +170,6 @@ class PrivateTaskApiTest(TestCase):
         tasks = Task.objects.filter(todo__user=self.user)
         serializer = TaskSerializer(tasks, many=True)
 
-        # print("serilaizer data", serializer.data)
         self.assertEqual(serializer.data, res.data)
 
     def test_task_batch_create_task_success_updates_todo_last_added(self):
@@ -251,7 +260,7 @@ class PrivateTaskApiTest(TestCase):
 
     def test_update_task(self):
         """
-        Test updating a specific tag
+        Test updating a specific task
         """
         task = create_task(self.todo, "Test Task")
 
@@ -290,8 +299,11 @@ class PrivateTaskApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         tasks = Task.objects.filter(todo=self.todo).order_by("id")
+        task1.refresh_from_db()
 
         serializer = TaskSerializer(tasks, many=True)
+
+        self.assertEqual(task1.ordering, payload["ordering_list"][0]["ordering"])
 
         self.assertEqual(serializer.data, res.data)
 

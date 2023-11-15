@@ -2,6 +2,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 
 
 class BatchSerializerMixin:
@@ -91,8 +92,7 @@ class BatchRouteMixin:
             "batch_create",
             "batch_delete",
             "batch_update",
-        ]:  # == self.action_name:
-            # print("the action name", self.action_name)
+        ]:
             context[self.action] = True
         return context
 
@@ -160,24 +160,26 @@ class BatchUpdateOrderingRouteMixin:  # (BatchRouteMixin):
     Mixin that adds a  `batch_update_ordering` API route to a viewset. To be used with BatchUpdateOrderingSerializerMixin
     """
 
-    # action_name = "batch_update_ordering"
-
     @action(detail=False, methods=["PATCH"], url_name="batch_update_ordering")
     def batch_update_ordering(self, request, *args, **kwargs):
-        ids = self.validate_ids(request.data["ordering_list"])
-        self.validate_orderings(request.data["ordering_list"])
+        try:
+            ids = self.validate_ids(request.data["ordering_list"])
+            self.validate_orderings(request.data["ordering_list"])
 
-        queryset = self.filter_queryset(self.get_queryset(ids=ids))
-        serializer = self.get_serializer(
-            queryset,
-            data=request.data["ordering_list"],
-            partial=True,
-            many=True,
-            type=self.action,
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            queryset = self.filter_queryset(self.get_queryset(ids=ids))
+            serializer = self.get_serializer(
+                queryset,
+                data=request.data["ordering_list"],
+                partial=True,
+                many=True,
+                type=self.action,
+                view_name=self.view_name(),
+            )
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise ValidationError(e)
 
 
 class BatchUpdateRouteMixin:
@@ -187,22 +189,26 @@ class BatchUpdateRouteMixin:
 
     @action(detail=False, methods=["PATCH"], url_name="batch_update")
     def batch_update(self, request, *args, **kwargs):
-        ids = self.validate_ids(request.data["update_list"])
-        self.validate_titles(request.data["update_list"])
-        self.validate_completed(request.data["update_list"])
+        try:
+            ids = self.validate_ids(request.data["update_list"])
+            self.validate_titles(request.data["update_list"])
+            self.validate_completed(request.data["update_list"])
 
-        queryset = self.filter_queryset(self.get_queryset(ids=ids))
+            queryset = self.filter_queryset(self.get_queryset(ids=ids))
 
-        serializer = self.get_serializer(
-            queryset,
-            data=request.data["update_list"],
-            partial=True,
-            many=True,
-            type=self.action,
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = self.get_serializer(
+                queryset,
+                data=request.data["update_list"],
+                partial=True,
+                many=True,
+                type=self.action,
+                view_name=self.view_name(),
+            )
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise ValidationError(e)
 
 
 class BatchCreateRouteMixin:  # (BatchRouteMixin):
@@ -212,21 +218,22 @@ class BatchCreateRouteMixin:  # (BatchRouteMixin):
 
     @action(detail=False, methods=["POST"], url_name="batch_create")
     def batch_create(self, request, *args, **kwargs):
-        queryset = self.get_object()
+        try:
+            queryset = self.get_object()
 
-        print("the req create", request.data["create_list"])
+            serializer = self.get_serializer(
+                queryset,
+                data=request.data["create_list"],
+                many=True,
+                type=self.action,
+                view_name=self.view_name(),
+            )
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
 
-        serializer = self.get_serializer(
-            queryset,
-            data=request.data["create_list"],
-            many=True,
-            type=self.action,
-            view_name=self.view_name(),
-        )
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            raise ValidationError(e)
 
 
 class BatchDeleteRouteMixin:
@@ -236,12 +243,15 @@ class BatchDeleteRouteMixin:
 
     @action(detail=False, methods=["DELETE"], url_name="batch_delete")
     def batch_delete(self, request, *args, **kwargs):
-        ids = self.validate_delete_ids(request.data["delete_list"])
-        print("the deel ids", ids)
+        try:
+            ids = self.validate_delete_ids(request.data["delete_list"])
+            print("the deel ids", ids)
 
-        queryset = self.filter_queryset(self.get_queryset(ids=ids))
-        queryset.delete()
-        return Response(
-            self.serializer_class(queryset, many=True).data,
-            status=status.HTTP_204_NO_CONTENT,
-        )
+            queryset = self.filter_queryset(self.get_queryset(ids=ids))
+            queryset.delete()
+            return Response(
+                self.serializer_class(queryset, many=True).data,
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except Exception as e:
+            raise ValidationError(e)

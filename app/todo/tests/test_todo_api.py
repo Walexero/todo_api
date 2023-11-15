@@ -483,8 +483,9 @@ class PrivateTodoApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         todos = models.Todo.objects.filter(user=user)
-
+        todo1.refresh_from_db()
         serializer = TodoSerializer(todos, many=True)
+        self.assertEqual(todo1.ordering, payload["ordering_list"][0]["ordering"])
         self.assertEqual(res.data, serializer.data)
 
     def test_partial_update_of_todos_instance_using_batch_update_fails_with_bad_request_data(
