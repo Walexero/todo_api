@@ -41,7 +41,7 @@ else:
 # Application definition
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ORIGIN_WHITELIST = [os.environ.get("CORS_CSRF_URL_1")]
+CORS_ORIGIN_WHITELIST = [os.environ.get("CORS_CSRF_URL_1", "https://example.com")]
 CORS_ORIGIN_WHITELIST.extend(
     filter(
         None,
@@ -49,7 +49,7 @@ CORS_ORIGIN_WHITELIST.extend(
     )
 )
 
-CSRF_TRUSTED_ORIGINS = [os.environ.get("CORS_CSRF_URL_1")]
+CSRF_TRUSTED_ORIGINS = [os.environ.get("CORS_CSRF_URL_1", "https://example.com")]
 CSRF_TRUSTED_ORIGINS.extend(
     filter(
         None,
@@ -57,7 +57,7 @@ CSRF_TRUSTED_ORIGINS.extend(
     )
 )
 
-CSRF_ALLOWED_ORIGINS = [os.environ.get("CORS_CSRF_URL_1")]
+CSRF_ALLOWED_ORIGINS = [os.environ.get("CORS_CSRF_URL_1", "https://example.com")]
 CSRF_ALLOWED_ORIGINS.extend(
     filter(
         None,
@@ -134,13 +134,12 @@ DATABASES = {
     }
 }
 
-# Email
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ.get("EMAIL_HOST")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT"))
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "testuser@example.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 547))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "testuser@example.com")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "Testuser123")
 EMAIL_USE_TLS = bool(int(os.environ.get("EMAIL_USE_TLS", 1)))
 EMAIL_USE_SSL = bool(int(os.environ.get("EMAIL_USE_SSL", 0)))
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
