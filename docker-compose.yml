@@ -20,13 +20,13 @@ services:
       - DB_PASS=development
       - DEBUG=1
       - DEV=true
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USE_SSL=${EMAIL_USE_SSL}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
-      - CORS_CSRF_URL_1=${CORS_CSRF_URL_1}
+      - EMAIL_HOST_USER=testuser@example.com
+      - EMAIL_HOST_PASSWORD=Testuser123
+      - EMAIL_HOST=testuser@example.com
+      - EMAIL_PORT=547
+      - EMAIL_USE_SSL=False
+      - EMAIL_USE_TLS=True
+      - CORS_CSRF_URL_1="https://example.com"
     networks:
       - dev-net
     depends_on:
